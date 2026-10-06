@@ -90,7 +90,7 @@ class TerminalChatRunner:
                 self.run_direct_repl()
         else:
             # Start real AI bridge server
-            server_thread = threading.Thread(target=start_ai_server, args=(8765,), daemon=True)
+            server_thread = threading.Thread(target=start_ai_server, args=(8765, self.subject), daemon=True)
             server_thread.start()
             time.sleep(0.3)
 

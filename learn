@@ -77,7 +77,7 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
 def cmd_status(subject: Optional[str] = None):
     print_header()
     subj = resolve_subject(subject)
-    planner = CurriculumPlanner(subject=subj, boundary_level=3.65)
+    planner = CurriculumPlanner(subject=subj)
     print(f"\nTopic Progress ({subj.capitalize()}):")
     print(planner.generate_progress_gauge())
 
@@ -106,7 +106,7 @@ def cmd_probe(subject: Optional[str] = None):
 
 def cmd_roadmap(subject: Optional[str] = None):
     subj = resolve_subject(subject)
-    planner = CurriculumPlanner(subject=subj, boundary_level=3.65)
+    planner = CurriculumPlanner(subject=subj)
     planner.update_dashboard()
     print(f"\nStudy roadmap and topic diagrams refreshed in md/ for {subj.capitalize()}.")
 

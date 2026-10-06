@@ -19,12 +19,26 @@ except ImportError:
 MD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "md"))
 
 class CurriculumPlanner:
-    def __init__(self, subject: str = "spanish", boundary_level: float = 3.65, md_dir: str = MD_DIR):
+    def __init__(self, subject: str = "spanish", boundary_level: Optional[float] = None, md_dir: str = MD_DIR):
         self.subject = subject.lower().strip()
-        self.boundary_level = boundary_level
         self.md_dir = md_dir
+        self.boundary_level = boundary_level if boundary_level is not None else self._read_calibrated_boundary()
         self.rag = MaterialRAGManager()
         self.modules: List[Tuple[str, str]] = self._get_modules()
+
+    def _read_calibrated_boundary(self) -> float:
+        """Reads the student's actual calibrated boundary level from 02_BOUNDARY_CALIBRATION.md."""
+        calib_file = os.path.join(self.md_dir, "02_BOUNDARY_CALIBRATION.md")
+        if os.path.exists(calib_file):
+            try:
+                with open(calib_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+                m = re.search(r'Level\s+([0-9\.]+)', content)
+                if m:
+                    return float(m.group(1))
+            except Exception:
+                pass
+        return 1.0
 
     def _get_modules(self) -> List[Tuple[str, str]]:
         """Returns 5-6 structured progression modules for the given subject."""

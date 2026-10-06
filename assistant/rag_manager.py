@@ -135,13 +135,22 @@ class MaterialRAGManager:
                 scores.append((score, chunk))
 
         scores.sort(key=lambda x: x[0], reverse=True)
-        return [c for _, c in scores[:top_k]]
+        results = [c for _, c in scores[:top_k]]
+        if not results:
+            subject_chunks = [c for c in self.indexed_chunks if not subject or c["subject"] == subject]
+            results = subject_chunks[:top_k]
+        return results
 
-    def get_source_file_args(self, subject: str = "spanish") -> List[str]:
-        """Returns file arguments for aichat -f."""
+    def get_source_file_args(self, subject: Optional[str] = None) -> List[str]:
+        """Returns file arguments for a given subject."""
         materials = self.scan_materials()
-        if subject in materials:
+        if subject and subject in materials:
             return materials[subject]
+        elif not subject and materials:
+            all_files = []
+            for files in materials.values():
+                all_files.extend(files)
+            return all_files
         return []
 
 if __name__ == "__main__":

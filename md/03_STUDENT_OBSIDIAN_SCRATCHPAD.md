@@ -1,6 +1,6 @@
 # 📝 My Study Notes & Questions
 
-Write any thoughts, questions, or ideas here while browsing in Obsidian. When you start a terminal session with `./learn/learn chat`, your tutor will automatically review what you wrote here and bring it up!
+Write any thoughts, questions, or ideas here while browsing in Obsidian. When you start a terminal session with `./learn chat`, your tutor will automatically review what you wrote here and bring it up!
 
 ---
 

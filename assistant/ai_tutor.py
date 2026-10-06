@@ -180,9 +180,13 @@ class RealAITutorEngine:
         return call_real_ai(full_ai_prompt)
 
 class LocalOpenAIHandler(BaseHTTPRequestHandler):
-    tutor = RealAITutorEngine()
+    tutor: Optional[RealAITutorEngine] = None
 
     def do_POST(self):
+        if not LocalOpenAIHandler.tutor:
+            LocalOpenAIHandler.tutor = RealAITutorEngine()
+        tutor = LocalOpenAIHandler.tutor
+
         if self.path == "/v1/chat/completions":
             content_length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(content_length).decode("utf-8")
@@ -194,7 +198,7 @@ class LocalOpenAIHandler(BaseHTTPRequestHandler):
 
             model_id = data.get("model", "local-tutor:accuracy-adaptive")
             is_stream = data.get("stream", False)
-            response_text = self.tutor.formulate_response(last_message, history=history)
+            response_text = tutor.formulate_response(last_message, history=history)
             msg_id = f"chatcmpl-real-ai-{int(time.time())}"
 
             if is_stream:
@@ -273,8 +277,9 @@ class LocalOpenAIHandler(BaseHTTPRequestHandler):
 class ReusableHTTPServer(HTTPServer):
     allow_reuse_address = True
 
-def start_ai_server(port: int = 8765):
+def start_ai_server(port: int = 8765, subject: str = "spanish"):
     try:
+        LocalOpenAIHandler.tutor = RealAITutorEngine(subject=subject)
         server = ReusableHTTPServer(("127.0.0.1", port), LocalOpenAIHandler)
         server.serve_forever()
     except OSError:
