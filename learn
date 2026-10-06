@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+Study Assistant (CLI Entrypoint)
+Usage:
+  ./learn            # Interactive menu
+  ./learn check      # Run placement check
+  ./learn chat       # Start terminal study session
+  ./learn roadmap    # View/update study roadmap
+  ./learn notes      # View student notes
+  ./learn materials  # Refresh course materials
+"""
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSISTANT_DIR = os.path.join(BASE_DIR, "assistant")
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+if ASSISTANT_DIR not in sys.path:
+    sys.path.insert(0, ASSISTANT_DIR)
+
+from assistant.boundary_search import KnowledgeBoundarySearch
+from assistant.curriculum_planner import CurriculumPlanner
+from assistant.obsidian_sync import ObsidianNoteSync
+from assistant.rag_manager import MaterialRAGManager
+from assistant.terminal_chat import TerminalChatRunner
+
+def print_header():
+    print("""
+======================================================================
+  Personalized Study Assistant
+======================================================================
+    """.strip("\n"))
+
+def cmd_status():
+    print_header()
+    planner = CurriculumPlanner(boundary_level=3.65)
+    print("\nTopic Progress:")
+    print(planner.generate_progress_gauge())
+
+    rag = MaterialRAGManager()
+    materials = rag.scan_materials()
+    print("\nCourse Materials:")
+    for subj, files in materials.items():
+        print(f"  • {subj.capitalize()}:")
+        for f in files:
+            print(f"    - {os.path.basename(f)}")
+
+    sync = ObsidianNoteSync()
+    notes = sync.read_scratchpad_notes()
+    if notes:
+        print(f"\nNotes from Obsidian ({len(notes)}):")
+        for n in notes:
+            print(f"  • {n}")
+    print("\nOpen 'learn/md/' in Obsidian to view study guides & flashcards.")
+
+def cmd_probe(subject="spanish"):
+    search = KnowledgeBoundarySearch()
+    boundary = search.run_interactive_assessment()
+    planner = CurriculumPlanner(boundary_level=boundary)
+    planner.update_dashboard()
+
+def cmd_roadmap():
+    planner = CurriculumPlanner(boundary_level=3.65)
+    planner.update_dashboard()
+    print("\nStudy roadmap and topic diagrams refreshed in learn/md/01_CURRICULUM_ROADMAP.md")
+
+def cmd_sync():
+    sync = ObsidianNoteSync()
+    notes = sync.read_scratchpad_notes()
+    module_notes = sync.scan_all_module_notes()
+    print("\nYour Obsidian Notes:")
+    if notes:
+        for n in notes:
+            print(f"  • {n}")
+    if module_notes:
+        for mod, n_list in module_notes.items():
+            for n in n_list:
+                print(f"  • [{mod}] {n}")
+    if not notes and not module_notes:
+        print("  (No notes found. You can add notes anytime in learn/md/03_STUDENT_OBSIDIAN_SCRATCHPAD.md)")
+
+def cmd_ingest():
+    rag = MaterialRAGManager()
+    chunks = rag.build_index()
+    print(f"\nCourse materials refreshed successfully ({chunks} sections indexed).")
+
+def cmd_chat(subject="spanish"):
+    runner = TerminalChatRunner(subject=subject)
+    runner.start_session(interactive_repl=True)
+
+def interactive_menu():
+    while True:
+        print_header()
+        print("\nChoose an option:")
+        print("  1. Placement Check (Find where to start)")
+        print("  2. Start Study Session (Terminal chat)")
+        print("  3. View Study Progress & Topics")
+        print("  4. View My Notes & Questions")
+        print("  5. Refresh Course Materials")
+        print("  6. Exit")
+
+        try:
+            choice = input("\nSelect [1-6]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nGoodbye!")
+            break
+
+        if choice == "1":
+            cmd_probe()
+            input("\nPress Enter to return to menu...")
+        elif choice == "2":
+            cmd_chat()
+            input("\nPress Enter to return to menu...")
+        elif choice == "3":
+            cmd_status()
+            input("\nPress Enter to return to menu...")
+        elif choice == "4":
+            cmd_sync()
+            input("\nPress Enter to return to menu...")
+        elif choice == "5":
+            cmd_ingest()
+            input("\nPress Enter to return to menu...")
+        elif choice in ["6", "q", "exit"]:
+            print("\nGoodbye!")
+            break
+        else:
+            print("Please select 1-6.")
+
+def main():
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        if arg in ["probe", "check", "diagnostic"]:
+            cmd_probe()
+        elif arg in ["chat", "start", "session"]:
+            cmd_chat()
+        elif arg in ["roadmap", "progress", "status"]:
+            cmd_status()
+        elif arg in ["sync", "notes"]:
+            cmd_sync()
+        elif arg in ["ingest", "materials"]:
+            cmd_ingest()
+        elif arg in ["help", "-h", "--help"]:
+            print(__doc__)
+        else:
+            print(f"Unknown command: '{arg}'\n{__doc__}")
+    else:
+        interactive_menu()
+
+if __name__ == "__main__":
+    main()

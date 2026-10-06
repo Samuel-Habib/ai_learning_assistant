@@ -1,0 +1,12 @@
+# Core Python requirements
+# The Study Assistant engine uses the Python 3 standard library (no pip packages required).
+# Requires Python 3.8+
+
+# System dependencies:
+# - poppler-utils (provides `pdftotext` for PDF material ingestion)
+#   Ubuntu/Debian: sudo apt-get install -y poppler-utils
+#   macOS:         brew install poppler
+#
+# - aichat (optional CLI runner for terminal REPL)
+#   Cargo:         cargo install aichat
+#   Homebrew:      brew install aichat

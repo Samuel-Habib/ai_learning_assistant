@@ -1,0 +1,68 @@
+# AIChat Configuration for Accuracy-First Adaptive Learning Assistant
+# Location: learn/.aichat/config.yaml
+
+model: local-tutor:accuracy-adaptive
+
+# Default behavior
+stream: true
+save: true
+highlight: true
+wrap: auto
+
+# Default role
+cmd_prelude: role:accuracy-tutor
+repl_prelude: role:accuracy-tutor
+
+# Document Loaders for RAG and file ingestion
+document_loaders:
+  pdf: 'pdftotext $1 -'
+  txt: 'cat $1'
+  md: 'cat $1'
+
+# Epistemic Accuracy-First RAG Template
+rag_top_k: 5
+rag_template: |
+  You are an accuracy-first tutor. Answer the student inquiry using the provided authoritative source context.
+
+  <authoritative_context>
+  __CONTEXT__
+  </authoritative_context>
+
+  <epistemic_rules>
+  - Treat the provided material as the primary source of truth.
+  - Distinguish between [FACT] (directly in context), [DERIVATION] (logically derived), [ADDITIONAL CONTEXT] (outside context), and [UNKNOWN].
+  - If the context does not contain sufficient evidence to answer or diagnose, state: "The provided course material does not establish this."
+  - Never fabricate quotes, citations, grammatical rules, or page numbers.
+  - Optimize for durable, active learning: do not provide answers where active retrieval is required.
+  </epistemic_rules>
+
+  <student_query>
+  __INPUT__
+  </student_query>
+
+# Multi-Provider Clients with Environment Variable Resolution
+clients:
+  # Gemini Client
+  - type: gemini
+    api_key: $GEMINI_API_KEY
+
+  # OpenAI Client
+  - type: openai
+    api_key: $OPENAI_API_KEY
+
+  # Anthropic Claude Client
+  - type: claude
+    api_key: $ANTHROPIC_API_KEY
+
+  # Local / Offline Ollama Client
+  - type: ollama
+    api_base: http://localhost:11434
+
+  # Built-in Local Offline Proxy (Zero-Key Fallback)
+  - type: openai-compatible
+    name: local-tutor
+    api_base: http://127.0.0.1:8765/v1
+    models:
+      - name: accuracy-adaptive
+        max_input_tokens: 128000
+

@@ -1,0 +1,107 @@
+Authoritative Spanish Course Reader - Accuracy-First System
+
+Gramatica Espanola: Curso Integral
+Authoritative Reference Text for Adaptive Mastery & Diagnostic Probing
+
+Chapter 1: Foundations of Spanish Grammar & Regular Present Tense
+Spanish is a Romance language characterized by grammatical gender (masculine and feminine), inflected verb
+conjugations according to person and number, and null-subject flexibility (pro-drop). In the present indicative tense,
+verbs belong to one of three inflectional classes ending in -ar, -er, or -ir.
+
+1.1 Regular Conjugation Patterns
+For regular verbs, remove the infinitive suffix and append person-number morphemes:
+- Hablar (-ar): yo hablo, tu hablas, el/ella/usted habla, nosotros hablamos, vosotros hablais, ellos/ustedes hablan.
+- Comer (-er): yo como, tu comes, el/ella/usted come, nosotros comemos, vosotros comeis, ellos/ustedes comen.
+- Vivir (-ir): yo vivo, tu vives, el/ella/usted vive, nosotros vivimos, vosotros vivis, ellos/ustedes viven.
+
+1.2 Epistemic Distinction: Grammatical Rule vs Pragmatic Usage
+Subject pronouns (yo, tu, etc.) are frequently omitted in standard Spanish because verb inflections encode grammatical
+person unambiguously. Pronouns are explicitly supplied for emphasis, contrast, or disambiguation.
+
+Chapter 2: The Existential & State Distinction: Ser vs. Estar
+Unlike English which employs the single copular verb 'to be', Spanish maintains an essential epistemic and ontological
+dichotomy between Ser (inherent nature, identity, classification) and Estar (state, condition, spatial location).
+
+2.1 Core Domain of Ser
+Ser (conjugation: soy, eres, es, somos, sois, son) is used for:
+1. Identity, essence, and nationality (Soy arquitecto; Carlos es espanol).
+2. Origin and material composition (La mesa es de madera).
+3. Time, date, and temporal measurements (Son las tres de la tarde; Hoy es lunes).
+4. Location of events (El concierto es en el estadio).
+
+2.2 Core Domain of Estar
+Estar (conjugation: estoy, estas, esta, estamos, estais, estan) is used for:
+1. Spatial location of physical entities (El libro esta sobre la mesa; Madrid esta en Espana).
+2. Temporary physical or emotional states (Estoy cansado; Maria esta contenta).
+3. Ongoing actions in continuous aspect (Estamos estudiando gramatica espanola).
+4. Resulting states produced by an action (La puerta esta cerrada).
+
+2.3 Meaning Shifts Based on Copular Selection
+The selection of Ser vs Estar can alter the meaning of qualifying adjectives:
+- Ser listo = to be smart / clever; Estar listo = to be ready / prepared.
+- Ser verde = to be green in color; Estar verde = to be unripe / inexperienced.
+- Ser aburrido = to be boring (intrinsic trait); Estar aburrido = to be bored (transient state).
+
+Chapter 3: Stem-Changing & Irregular Verbs
+Page 1
+
+Authoritative Spanish Course Reader - Accuracy-First System
+Stem-changing verbs undergo vocalic alternation in the root syllable when that syllable receives grammatical stress (in
+yo, tu, el/ella, and ellos forms). The nosotros and vosotros forms remain unshifted.
+
+3.1 Three Primary Alternation Classes
+1. e -> ie alternation: Pensar (pienso, piensas, piensa, pensamos, pensais, piensan); Entender, Cerrar, Querer.
+2. o -> ue alternation: Dormir (duermo, duermes, duerme, dormimos, dormis, duermen); Poder, Volver, Encontrar.
+3. e -> i alternation (-ir verbs only): Pedir (pido, pides, pide, pedimos, pedis, piden); Servir, Repetir.
+
+Chapter 4: The Past Tense Frontier: Preterite vs. Imperfect Aspect
+In the indicative past, Spanish distinguishes not between temporal distance, but between grammatical aspect: the
+Preterite (perfective aspect: completed event with definite bounds) vs. Imperfect (imperfective aspect: ongoing, habitual,
+background, or unbounded).
+
+4.1 The Preterite (Preterito Indefinido)
+Denotes actions viewed as single completed wholes in past time:
+- Regular -ar: hable, hablaste, hablo, hablamos, hablasteis, hablaron.
+- Regular -er/-ir: comi, comiste, comio, comimos, comisteis, comieron.
+- Common irregular stems: tener -> tuve, estar -> estuve, hacer -> hice/hizo, poner -> puse, poder -> pude, saber ->
+supe.
+
+4.2 The Imperfect (Preterito Imperfecto)
+Denotes continuous past states, background descriptions, habitual actions ('used to'), and age/time in the past:
+- Regular -ar: hablaba, hablabas, hablaba, hablabamos, hablabais, hablaban.
+- Regular -er/-ir: comia, comias, comia, comiamos, comiais, comian.
+- Irregular verbs in Imperfect: Only three exist: ser (era), ir (iba), and ver (veia).
+
+4.3 Critical Semantic Aspect Shifts in Stative Verbs
+Certain stative verbs take on distinct aspectual interpretations in the preterite vs imperfect:
+- Conocer: Imperfect 'conocía' = I knew / was acquainted with; Preterite 'conocí' = I met (inception of knowing).
+- Saber: Imperfect 'sabía' = I knew (ongoing state); Preterite 'supe' = I found out / discovered (inceptive realization).
+- Querer: Imperfect 'quería' = I wanted (mental state); Preterite 'quise' = I attempted/tried; 'no quise' = I refused.
+- Poder: Imperfect 'podía' = I was able / had the capability; Preterite 'pude' = I managed to / succeeded in doing.
+
+Chapter 5: The Subjunctive Mood: Epistemic Unreality & Volition
+The Subjunctive is a grammatical mood expressing unreality, subjectivity, volition, doubt, and non-assertion. It requires
+both an activating matrix clause trigger (WEIRDO: Wishes, Emotions, Impersonal observations, Recommendations,
+Doubt, Ojalá) and a change of grammatical subject between matrix and embedded clauses.
+
+5.1 Present Subjunctive Morphological Rule
+Morphological algorithm: Take the first-person singular indicative (yo) form in present tense, drop the terminal -o, and
+apply opposite vowel endings:
+- -ar verbs adopt -e endings: hable, hables, hable, hablemos, hableis, hablen.
+- -er/-ir verbs adopt -a endings: coma, comas, coma, comamos, comais, coman; viva, vivas, viva, vivamos, vivan.
+- Irregular yo-roots are preserved: tener -> teng- -> tenga; hacer -> hag- -> haga; decir -> dig- -> diga.
+- Irregulars with no -o root: sea (ser), este (estar), vaya (ir), sepa (saber), haya (haber), de (dar).
+
+Chapter 6: Diagnostic Assessment Bank: Graduated Difficulty Tiers
+Page 2
+
+Authoritative Spanish Course Reader - Accuracy-First System
+Level 1 (Foundational): Present regular conjugations and basic subject-verb agreement.
+Level 2 (Elementary): Fundamental Ser vs. Estar differentiation for identity vs physical location.
+Level 3 (Intermediate): Stem-changing present verbs and irregular 'yo' forms.
+Level 4 (Knowledge Frontier): Preterite vs Imperfect aspectual discrimination and semantic shifts in stative verbs.
+Level 5 (Advanced): Subjunctive mood triggers, temporal clauses, and hypothetical conditionality.
+
+Page 3
+
+

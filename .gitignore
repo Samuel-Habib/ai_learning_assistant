@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Secrets & Environment variables
+.env
+.env.local
+*.env
+!.env.example
+
+# AIChat session histories & message buffers
+.aichat/messages.md
+.aichat/sessions/
+.aichat/history
+.aichat/.history
+
+# Obsidian per-device workspace caches
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Operating System & IDE artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs & temp files
+*.log
+scratch/
