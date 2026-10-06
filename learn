@@ -2,16 +2,17 @@
 """
 Study Assistant (CLI Entrypoint)
 Usage:
-  ./learn            # Interactive menu
-  ./learn check      # Run placement check
-  ./learn chat       # Start terminal study session
-  ./learn roadmap    # View/update study roadmap
-  ./learn notes      # View student notes
-  ./learn materials  # Refresh course materials
+  ./learn                      # Interactive menu
+  ./learn check [subject]      # Run adaptive placement check
+  ./learn chat [subject]       # Start terminal study session
+  ./learn roadmap [subject]    # View/update study roadmap
+  ./learn notes                # View student notes from Obsidian
+  ./learn materials            # Refresh and index course materials
 """
 
 import os
 import sys
+from typing import Optional
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSISTANT_DIR = os.path.join(BASE_DIR, "assistant")
@@ -33,17 +34,58 @@ def print_header():
 ======================================================================
     """.strip("\n"))
 
-def cmd_status():
+def resolve_subject(explicit_subject: Optional[str] = None) -> str:
+    """
+    Resolves target subject by checking command args, scanning material/,
+    and prompting the student if multiple subjects are installed.
+    """
+    rag = MaterialRAGManager()
+    materials = rag.scan_materials()
+    subjects = list(materials.keys())
+
+    # 1. If explicitly requested via CLI argument (e.g. ./learn check biology)
+    if explicit_subject:
+        subj_clean = explicit_subject.strip().lower()
+        for s in subjects:
+            if s.lower() == subj_clean:
+                return s
+        return subj_clean
+
+    # 2. If no materials exist yet
+    if not subjects:
+        return "general"
+
+    # 3. If exactly one subject exists, use it automatically
+    if len(subjects) == 1:
+        return subjects[0]
+
+    # 4. If multiple subjects exist, let student select
+    print("\nSelect a subject to study:")
+    for idx, s in enumerate(subjects, 1):
+        count = len(materials[s])
+        print(f"  {idx}. {s.capitalize()} ({count} file{'s' if count != 1 else ''})")
+
+    try:
+        choice = input(f"\nSelect [1-{len(subjects)}] (default 1): ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(subjects):
+            return subjects[int(choice) - 1]
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+    return subjects[0]
+
+def cmd_status(subject: Optional[str] = None):
     print_header()
-    planner = CurriculumPlanner(boundary_level=3.65)
-    print("\nTopic Progress:")
+    subj = resolve_subject(subject)
+    planner = CurriculumPlanner(subject=subj, boundary_level=3.65)
+    print(f"\nTopic Progress ({subj.capitalize()}):")
     print(planner.generate_progress_gauge())
 
     rag = MaterialRAGManager()
     materials = rag.scan_materials()
     print("\nCourse Materials:")
-    for subj, files in materials.items():
-        print(f"  • {subj.capitalize()}:")
+    for s, files in materials.items():
+        print(f"  • {s.capitalize()}:")
         for f in files:
             print(f"    - {os.path.basename(f)}")
 
@@ -53,18 +95,20 @@ def cmd_status():
         print(f"\nNotes from Obsidian ({len(notes)}):")
         for n in notes:
             print(f"  • {n}")
-    print("\nOpen 'learn/md/' in Obsidian to view study guides & flashcards.")
+    print("\nOpen 'md/' in Obsidian to view study guides & flashcards.")
 
-def cmd_probe(subject="spanish"):
-    search = KnowledgeBoundarySearch()
+def cmd_probe(subject: Optional[str] = None):
+    subj = resolve_subject(subject)
+    search = KnowledgeBoundarySearch(subject=subj)
     boundary = search.run_interactive_assessment()
-    planner = CurriculumPlanner(boundary_level=boundary)
+    planner = CurriculumPlanner(subject=subj, boundary_level=boundary)
     planner.update_dashboard()
 
-def cmd_roadmap():
-    planner = CurriculumPlanner(boundary_level=3.65)
+def cmd_roadmap(subject: Optional[str] = None):
+    subj = resolve_subject(subject)
+    planner = CurriculumPlanner(subject=subj, boundary_level=3.65)
     planner.update_dashboard()
-    print("\nStudy roadmap and topic diagrams refreshed in learn/md/01_CURRICULUM_ROADMAP.md")
+    print(f"\nStudy roadmap and topic diagrams refreshed in md/ for {subj.capitalize()}.")
 
 def cmd_sync():
     sync = ObsidianNoteSync()
@@ -79,15 +123,16 @@ def cmd_sync():
             for n in n_list:
                 print(f"  • [{mod}] {n}")
     if not notes and not module_notes:
-        print("  (No notes found. You can add notes anytime in learn/md/03_STUDENT_OBSIDIAN_SCRATCHPAD.md)")
+        print("  (No notes found. You can add notes anytime in md/03_STUDENT_OBSIDIAN_SCRATCHPAD.md)")
 
 def cmd_ingest():
     rag = MaterialRAGManager()
     chunks = rag.build_index()
     print(f"\nCourse materials refreshed successfully ({chunks} sections indexed).")
 
-def cmd_chat(subject="spanish"):
-    runner = TerminalChatRunner(subject=subject)
+def cmd_chat(subject: Optional[str] = None):
+    subj = resolve_subject(subject)
+    runner = TerminalChatRunner(subject=subj)
     runner.start_session(interactive_repl=True)
 
 def interactive_menu():
@@ -131,12 +176,16 @@ def interactive_menu():
 def main():
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
+        sub_arg = sys.argv[2] if len(sys.argv) > 2 else None
+
         if arg in ["probe", "check", "diagnostic"]:
-            cmd_probe()
+            cmd_probe(subject=sub_arg)
         elif arg in ["chat", "start", "session"]:
-            cmd_chat()
-        elif arg in ["roadmap", "progress", "status"]:
-            cmd_status()
+            cmd_chat(subject=sub_arg)
+        elif arg in ["roadmap"]:
+            cmd_roadmap(subject=sub_arg)
+        elif arg in ["progress", "status"]:
+            cmd_status(subject=sub_arg)
         elif arg in ["sync", "notes"]:
             cmd_sync()
         elif arg in ["ingest", "materials"]:
