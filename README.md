@@ -16,26 +16,22 @@ An accuracy-first, evidence-based learning assistant that transforms your course
 
 ## 🚀 Quickstart
 
-### 1. Prerequisites
+### 1. One-Step Installation
 
-- **Python:** 3.8 or higher.
-- **PDF Extraction (Optional, for PDF ingestion):** `poppler-utils`
-  ```bash
-  # Ubuntu / Debian
-  sudo apt-get install -y poppler-utils
+Clone the repository and run the setup script for your platform:
 
-  # macOS
-  brew install poppler
-  ```
-- **AIChat (Optional, for advanced REPL):**
-  ```bash
-  cargo install aichat
-  # or: brew install aichat
-  ```
+**macOS & Linux (Universal Auto-Detection):**
+```bash
+./install.sh
+```
+
+Or run directly by platform:
+- **macOS:** `./scripts/install_mac.sh` (or `brew install poppler aichat`)
+- **Linux:** `./scripts/install_linux.sh`
+- **Windows (PowerShell):** `powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1`
+- **Windows (WSL):** `./install.sh`
 
 ### 2. Launching
-
-Clone the repository and run:
 
 ```bash
 # Interactive menu
@@ -114,6 +110,11 @@ The tutor will guide you through exercises based on your textbook, answering any
 │   ├── terminal_chat.py       # Terminal chat runner & REPL fallback
 │   └── ai_tutor.py            # AI bridge server and prompt formatter
 ├── .aichat/                   # AIChat configuration, roles, and RAG profiles
+├── scripts/                   # Platform-specific setup scripts
+│   ├── install_mac.sh         # macOS Homebrew installer
+│   ├── install_linux.sh       # Linux apt/dnf/pacman installer
+│   └── install_windows.ps1    # Windows PowerShell installer
+├── install.sh                 # Universal cross-platform installer launcher
 ├── learn                      # CLI entrypoint executable
 ├── start.sh                   # Convenience bash launcher
 ├── requirements.txt           # Dependency guide
