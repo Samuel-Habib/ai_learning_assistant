@@ -37,42 +37,61 @@ def print_header():
 def resolve_subject(explicit_subject: Optional[str] = None) -> str:
     """
     Resolves target subject by checking command args, scanning material/,
-    and prompting the student if multiple subjects are installed.
+    and prompting the student with clear choices.
     """
     rag = MaterialRAGManager()
     materials = rag.scan_materials()
     subjects = list(materials.keys())
 
-    # 1. If explicitly requested via CLI argument (e.g. ./learn check biology)
+    # 1. If explicitly passed via command line (e.g. ./learn check biology)
     if explicit_subject:
         subj_clean = explicit_subject.strip().lower()
-        for s in subjects:
-            if s.lower() == subj_clean:
-                return s
+        subj_dir = os.path.join(rag.material_dir, subj_clean)
+        os.makedirs(subj_dir, exist_ok=True)
         return subj_clean
 
-    # 2. If no materials exist yet
-    if not subjects:
-        return "general"
+    # 2. Interactive selection prompt
+    print("\n📚 Choose a subject to study:")
+    if subjects:
+        for idx, s in enumerate(subjects, 1):
+            count = len(materials[s])
+            print(f"  {idx}. {s.capitalize()} ({count} material file{'s' if count != 1 else ''})")
+        print(f"  {len(subjects) + 1}. Add or type a new subject / topic...")
+    else:
+        print("  1. Add or type a new subject / topic...")
 
-    # 3. If exactly one subject exists, use it automatically
-    if len(subjects) == 1:
-        return subjects[0]
-
-    # 4. If multiple subjects exist, let student select
-    print("\nSelect a subject to study:")
-    for idx, s in enumerate(subjects, 1):
-        count = len(materials[s])
-        print(f"  {idx}. {s.capitalize()} ({count} file{'s' if count != 1 else ''})")
-
+    prompt_text = f"\nSelect [1-{len(subjects) + 1}] or type a topic name (default 1): " if subjects else "\nEnter subject name: "
     try:
-        choice = input(f"\nSelect [1-{len(subjects)}] (default 1): ").strip()
-        if choice.isdigit() and 1 <= int(choice) <= len(subjects):
-            return subjects[int(choice) - 1]
+        choice = input(prompt_text).strip()
     except (EOFError, KeyboardInterrupt):
-        pass
+        choice = ""
 
-    return subjects[0]
+    if not choice:
+        return subjects[0] if subjects else "general"
+
+    # If the user typed a number matching an existing subject
+    if choice.isdigit():
+        num = int(choice)
+        if 1 <= num <= len(subjects):
+            return subjects[num - 1]
+        elif num == len(subjects) + 1:
+            try:
+                new_subj = input("\nEnter the subject name (e.g. biology, linear_algebra, history): ").strip()
+                if new_subj:
+                    new_clean = new_subj.lower().replace(" ", "_")
+                    os.makedirs(os.path.join(rag.material_dir, new_clean), exist_ok=True)
+                    print(f"✓ Configured subject '{new_subj.capitalize()}' in material/{new_clean}/")
+                    return new_clean
+            except (EOFError, KeyboardInterrupt):
+                pass
+            return subjects[0] if subjects else "general"
+
+    # If the user directly typed the name of a topic (e.g. 'biology' or 'french')
+    clean_choice = choice.lower().replace(" ", "_")
+    os.makedirs(os.path.join(rag.material_dir, clean_choice), exist_ok=True)
+    if clean_choice not in subjects:
+        print(f"✓ Configured subject '{choice.capitalize()}' in material/{clean_choice}/")
+    return clean_choice
 
 def cmd_status(subject: Optional[str] = None):
     print_header()
