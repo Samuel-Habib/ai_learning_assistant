@@ -44,7 +44,16 @@ class MaterialRAGManager:
                 res = subprocess.run(["pdftotext", file_path, "-"], capture_output=True, text=True, check=True)
                 return res.stdout
             except Exception as e:
-                print(f"Warning: Failed to extract text from {file_path} via pdftotext: {e}")
+                try:
+                    import pypdf
+                    reader = pypdf.PdfReader(file_path)
+                    return "\n\n".join(page.extract_text() or "" for page in reader.pages)
+                except Exception:
+                    pass
+                print(f"Warning: Could not extract PDF {file_path}. To enable PDF support:")
+                print("  • macOS: brew install poppler")
+                print("  • Ubuntu/Linux: sudo apt install poppler-utils")
+                print("  • Or install: pip install pypdf")
                 return ""
         else:
             try:

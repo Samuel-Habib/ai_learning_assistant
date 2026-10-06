@@ -22,28 +22,103 @@ except ImportError:
 
 ROLE_PROMPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".aichat", "roles", "accuracy-tutor.md"))
 
+import shutil
+import urllib.request
+import urllib.error
+
+def load_dotenv():
+    """Loads environment variables from .env in workspace root if present."""
+    env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip("'\"")
+                    if k not in os.environ and v:
+                        os.environ[k] = v
+
+load_dotenv()
+
+def call_direct_api(prompt: str) -> Optional[str]:
+    """
+    Directly queries LLM APIs using standard library urllib.
+    Zero external dependencies; works seamlessly on macOS, Linux, and Windows.
+    """
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    groq_key = os.environ.get("GROQ_API_KEY")
+
+    if gemini_key:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+        payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            return f"Error contacting Gemini API: {e}"
+
+    if openai_key or groq_key:
+        url = "https://api.openai.com/v1/chat/completions" if openai_key else "https://api.groq.com/openai/v1/chat/completions"
+        key = openai_key or groq_key
+        model = "gpt-4o-mini" if openai_key else "llama-3.3-70b-versatile"
+        payload = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}]
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}"
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            return f"Error contacting AI API: {e}"
+
+    return None
+
 def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 60) -> str:
-    """Invokes real frontier AI through the system CLI with low-latency parameters."""
-    cmd = [
-        "agy",
-        "--dangerously-skip-permissions",
-        "--model", model,
-        "--effort", "low",
-        "--disable-slash-commands",
-        "--output-format", "text",
-        "-p", prompt
-    ]
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        if proc.returncode == 0 and proc.stdout.strip():
-            return proc.stdout.strip()
-        else:
-            err = proc.stderr.strip() or "CLI exited with non-zero code."
-            return f"Error communicating with AI model: {err}"
-    except subprocess.TimeoutExpired:
-        return "AI request timed out. Please try again."
-    except Exception as e:
-        return f"Error contacting AI engine: {e}"
+    """Invokes AI through direct API (macOS/cross-platform) or system CLI."""
+    # 1. Check direct provider API key
+    direct_resp = call_direct_api(prompt)
+    if direct_resp is not None:
+        return direct_resp
+
+    # 2. Check local CLI
+    if shutil.which("agy"):
+        cmd = [
+            "agy",
+            "--dangerously-skip-permissions",
+            "--model", model,
+            "--effort", "low",
+            "--disable-slash-commands",
+            "--output-format", "text",
+            "-p", prompt
+        ]
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            if proc.returncode == 0 and proc.stdout.strip():
+                return proc.stdout.strip()
+            else:
+                err = proc.stderr.strip() or "CLI exited with non-zero code."
+                return f"Error communicating with AI model: {err}"
+        except subprocess.TimeoutExpired:
+            return "AI request timed out. Please try again."
+        except Exception as e:
+            return f"Error contacting AI engine: {e}"
+
+    return (
+        "No AI provider configured. Set an API key in your terminal or .env file:\n"
+        "  export GEMINI_API_KEY='your_key'   # (Recommended, free tier)\n"
+        "  export OPENAI_API_KEY='your_key'\n"
+        "  export GROQ_API_KEY='your_key'\n"
+    )
 
 class RealAITutorEngine:
     def __init__(self, subject: str = "spanish"):
