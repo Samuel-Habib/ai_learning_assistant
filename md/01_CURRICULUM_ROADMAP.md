@@ -1,6 +1,6 @@
-# 🗺️ Spanish Grammar Study Roadmap
+# 🗺️ Biology Study Roadmap
 
-A structured learning progression from foundational grammar to advanced narrative fluency, based on the course materials in `learn/material/spanish/spanish_textbook.pdf`.
+A structured learning progression from foundational concepts to advanced independent mastery.
 
 ---
 
@@ -8,99 +8,33 @@ A structured learning progression from foundational grammar to advanced narrativ
 
 ```mermaid
 flowchart TD
-    subgraph Prereqs ["Foundations (Mastered)"]
-        P1["Present Indicative Regulars (-ar, -er, -ir)"]
-        P2["Ser (Essence) vs. Estar (State/Location)"]
-        P3["Stem-Vowel Alternations (e->ie, o->ue, e->i)"]
-        P1 --> P2 --> P3
-    end
+    classDef mastered fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#fff;
+    classDef current fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#fff;
+    classDef upcoming fill:#37474f,stroke:#263238,stroke-width:1px,color:#cfd8dc;
 
-    subgraph CurrentFocus ["Current Topic: Past Aspect"]
-        F1["Preterite (Completed) vs. Imperfect (Ongoing/Habitual)"]
-        F2["Regular Past Endings & Accent Marks"]
-        F3["Common Irregular Stems: tuv-, estuv-, pus-, sup-, hic-"]
-        F1 --> F2 --> F3
-    end
+    M1["1. Foundations of Biology<br/><i>Core Terminology & Axioms</i>"]:::current
+    M2["2. Primary Mechanics of Biology<br/><i>Standard Rules & Direct Applications</i>"]:::upcoming
+    M3["3. Core Procedural Methods<br/><i>Multi-step Reasoning & Problem Solving</i>"]:::upcoming
+    M4["4. Nuances & Edge Cases<br/><i>Subtle Distinctions & Misconceptions</i>"]:::upcoming
+    M5["5. Advanced Theory & Synthesis<br/><i>Complex Integration & Systemic Analysis</i>"]:::upcoming
+    M6["6. Practical Transfer & Mastery<br/><i>Unassisted Problem Solving</i>"]:::upcoming
 
-    subgraph NextTopics ["Next: Stative Verbs in Past Tenses"]
-        S1["Conocer: 'conocía' (knew) vs. 'conocí' (met)"]
-        S2["Saber: 'sabía' (knew) vs. 'supe' (found out)"]
-        S3["Querer: 'quería' (wanted) vs. 'quise' (tried/refused)"]
-        S4["Poder: 'podía' (capable) vs. 'pude' (managed to)"]
-        S1 & S2 & S3 & S4 --> Sint["Contextual Discrimination Practice"]
-    end
-
-    subgraph AdvancedTopics ["Advanced: Subjunctive Mood"]
-        Sub1["WEIRDO Triggers (Wishes, Emotions, Doubts, Volition)"]
-        Sub2["Opposite Vowel Conjugations"]
-        Sub3["Assertion vs. Non-Assertion"]
-        Sub1 --> Sub2 --> Sub3
-    end
-
-    subgraph Composition ["Final: Narrative Composition"]
-        T1["Paragraph-Level Storytelling"]
-        T2["Mixing Past Tenses Smoothly"]
-        T3["Unassisted Writing Challenges"]
-        T1 --> T2 --> T3
-    end
-
-    Prereqs ==> CurrentFocus
-    CurrentFocus ==> NextTopics
-    NextTopics ==> AdvancedTopics
-    AdvancedTopics ==> Composition
-
-    style CurrentFocus fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-    style NextTopics fill:#e8eaf6,stroke:#3f51b5,stroke-width:1px;
-    style Composition fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px;
+    M1 ==>|Current Frontier| M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
 ```
 
 ---
 
-## 📐 The Geometry of Past Aspect
-
-A helpful visual way to distinguish the two Spanish past tenses:
+## 📊 Progress Overview
 
 ```
-                       THE GEOMETRY OF PAST TENSES
-                       ===========================
-
-  PRETERITE (Completed Event)
-  ---------------------------
-  An action viewed from the OUTSIDE as a finished whole with clear boundaries:
-  
-         [ Start •====================• End ]
-           t1                               t2
-     "Ayer hablé con María." (Finished, bounded event)
-
-
-  IMPERFECT (Ongoing Background / Habit)
-  --------------------------------------
-  An action viewed from the INSIDE as an ongoing or habitual backdrop:
-  
-  ... ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ [ MOMENT IN TIME ] ~ ~ ~ ~ ~ ~ ~ ~ ~ ...
-                          "Mientras yo leía..."
-     (Ongoing stream; boundaries are not the focus)
-
-
-  COMBINED: An Action Interrupted
-  ------------------------------
-  The imperfect creates the background; the preterite steps in:
-
-  IMPERFECT (Background):  ══════════════════════════════════════════>
-                           "Yo caminaba por el parque..."
-                                         ▲
-                                         │ (Punctual event)
-  PRETERITE (Interruption):        [ ! ME CAÍ ! ]
-                                   "cuando me caí."
+1. Foundations of Biology        [██████████░░░░░░░░░░] Current Focus
+2. Primary Mechanics of Biolog   [░░░░░░░░░░░░░░░░░░░░] Next Up
+3. Core Procedural Methods       [░░░░░░░░░░░░░░░░░░░░] Queued
+4. Nuances & Edge Cases          [░░░░░░░░░░░░░░░░░░░░] Queued
+5. Advanced Theory & Synthesis   [░░░░░░░░░░░░░░░░░░░░] Queued
+6. Practical Transfer & Master   [░░░░░░░░░░░░░░░░░░░░] Queued
 ```
-
----
-
-## ⚡ Self-Check Milestones
-
-- [x] Conjugate regular -ar, -er, -ir verbs in the present tense without needing pronouns.
-- [x] Distinguish *ser listo* (smart) from *estar listo* (ready).
-- [ ] Conjugate irregular preterite stems (*tener -> tuve*, *poner -> puse*).
-- [ ] Choose between preterite and imperfect when describing an action that interrupts an ongoing activity.
-- [ ] Explain the difference between *no quise ir* and *no quería ir*.
-- [ ] Form the present subjunctive for irregular verbs (*hacer -> haga*, *tener -> tenga*).

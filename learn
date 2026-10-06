@@ -97,12 +97,11 @@ def cmd_status(subject: Optional[str] = None):
     print_header()
     subj = resolve_subject(subject)
     planner = CurriculumPlanner(subject=subj)
-    print(f"\nTopic Progress ({subj.capitalize()}):")
-    print(planner.generate_progress_gauge())
+    planner.print_terminal_roadmap()
 
     rag = MaterialRAGManager()
     materials = rag.scan_materials()
-    print("\nCourse Materials:")
+    print("Course Materials:")
     for s, files in materials.items():
         print(f"  • {s.capitalize()}:")
         for f in files:
@@ -114,7 +113,7 @@ def cmd_status(subject: Optional[str] = None):
         print(f"\nNotes from Obsidian ({len(notes)}):")
         for n in notes:
             print(f"  • {n}")
-    print("\nOpen 'md/' in Obsidian to view study guides & flashcards.")
+    print("\nOpen 'md/' in Obsidian or your markdown editor to view interactive diagrams & flashcards.")
 
 def cmd_probe(subject: Optional[str] = None):
     subj = resolve_subject(subject)
@@ -122,12 +121,13 @@ def cmd_probe(subject: Optional[str] = None):
     boundary = search.run_interactive_assessment()
     planner = CurriculumPlanner(subject=subj, boundary_level=boundary)
     planner.update_dashboard()
+    planner.print_terminal_roadmap()
 
 def cmd_roadmap(subject: Optional[str] = None):
     subj = resolve_subject(subject)
     planner = CurriculumPlanner(subject=subj)
     planner.update_dashboard()
-    print(f"\nStudy roadmap and topic diagrams refreshed in md/ for {subj.capitalize()}.")
+    planner.print_terminal_roadmap()
 
 def cmd_sync():
     sync = ObsidianNoteSync()

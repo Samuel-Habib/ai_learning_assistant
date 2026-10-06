@@ -147,6 +147,38 @@ Respond strictly in valid JSON format:
         out.append("```")
         return "\n".join(out)
 
+    def print_terminal_roadmap(self) -> None:
+        """Prints a clean, formatted study plan directly to stdout."""
+        active_idx = max(0, min(len(self.modules) - 1, int(self.boundary_level) - 1))
+        print("\n" + "=" * 65)
+        print(f"  Curriculum Study Plan: {self.subject.capitalize()} (Frontier: Level {self.boundary_level:.2f})")
+        print("=" * 65)
+
+        print("\nTopic Progress:")
+        print(self.generate_progress_gauge().strip("`").strip("\n"))
+
+        print("\nLearning Units Sequence:")
+        for i, (title, subtitle) in enumerate(self.modules):
+            if i < active_idx:
+                status = "✓ [Mastered]"
+                marker = "  "
+            elif i == active_idx:
+                status = "👉 [Current Focus]"
+                marker = "► "
+            elif i == active_idx + 1:
+                status = "⏳ [Next Up]"
+                marker = "  "
+            else:
+                status = "· [Queued]"
+                marker = "  "
+            print(f"{marker}{title} {status}")
+            if subtitle:
+                print(f"     └─ {subtitle}")
+        print("\n" + "-" * 65)
+        curr_title = self.modules[active_idx][0]
+        print(f"Next Step: Run './learn chat {self.subject}' to begin practicing {curr_title}.")
+        print("=" * 65 + "\n")
+
     def update_dashboard(self) -> None:
         """Updates the master dashboard in 00_INDEX_DASHBOARD.md."""
         dashboard_file = os.path.join(self.md_dir, "00_INDEX_DASHBOARD.md")
