@@ -89,9 +89,15 @@ class TerminalChatRunner:
         try:
             from .db import StateManager
         except ImportError:
-            from db import StateManager
+            from assistant.db import StateManager
         db = StateManager()
         history = db.get_chat_history(self.subject, limit=6)
+
+        try:
+            from .lesson_manager import LessonManager
+        except ImportError:
+            from lesson_manager import LessonManager
+        lesson_mgr = LessonManager()
 
         # Tutor initiates dialogue proactively
         try:
@@ -100,8 +106,10 @@ class TerminalChatRunner:
             print_tutor_message(greeting)
             history.append({"role": "assistant", "content": greeting})
             db.append_chat_message(self.subject, "assistant", greeting)
+            if len(greeting) > 200:
+                lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
         except Exception:
-            default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! How would you describe your current goals or questions in this subject?"
+            default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! Today we are focusing on {curr_unit} ({planner.modules[active_idx][1]}). Let's walk through the core mechanisms together."
             print_tutor_message(default_greeting)
             history.append({"role": "assistant", "content": default_greeting})
             db.append_chat_message(self.subject, "assistant", default_greeting)
@@ -113,7 +121,9 @@ class TerminalChatRunner:
                 continue
 
             if user_msg.lower() in ["exit", "quit", "menu", "q", ":q"]:
-                print(style_text("\n✨ Session paused. Your notes are saved in learn/md/.", Style.DIM, Style.GREEN))
+                lesson_path = lesson_mgr.get_lesson_path(self.subject, active_idx + 1, curr_unit)
+                print(style_text(f"\n✨ Session paused. Lesson notes & diagrams saved to Obsidian:", Style.DIM, Style.GREEN))
+                print(style_text(f"   {lesson_path}", Style.CYAN))
                 break
 
             db.append_chat_message(self.subject, "user", user_msg)
@@ -124,6 +134,8 @@ class TerminalChatRunner:
                 history.append({"role": "user", "content": user_msg})
                 history.append({"role": "assistant", "content": response})
                 db.append_chat_message(self.subject, "assistant", response)
+                if len(response) > 200:
+                    lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, response)
             except Exception as e:
                 print(style_text(f"\n⚠ Error: {e}", Style.RED))
 

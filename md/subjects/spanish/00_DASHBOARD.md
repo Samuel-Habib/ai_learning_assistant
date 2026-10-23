@@ -1,6 +1,6 @@
 # 🧭 Spanish: Study Hub
 
-Welcome to your study space for **Spanish**. All roadmaps, diagnostic records, and interactive notes are preserved here.
+Welcome to your study space for **Spanish**. All roadmaps, diagnostic records, interactive lesson notes, and study guides are preserved here.
 
 ---
 
@@ -15,6 +15,24 @@ Welcome to your study space for **Spanish**. All roadmaps, diagnostic records, a
 5. The Subjunctive Mood        [░░░░░░░░░░░░░░░░░░░░] Queued
 6. Narrative Synthesis & Pra   [░░░░░░░░░░░░░░░░░░░░] Queued
 ```
+
+---
+
+## 📖 Complete Study Lessons
+Read the full textbook-style explanations, circuits, and conceptual notes for each unit:
+
+- [[lessons/01_present_tense_foundations|📖 Unit 1: 1. Present Tense Foundations]] *(Mastered)*
+  - *Concepts:* Regulars, Pronoun-Drop
+- [[lessons/02_ser_vs_estar_stem_changers|📖 Unit 2: 2. Ser vs. Estar & Stem Changers]] 👉 **(Current Focus)**
+  - *Concepts:* Essence vs State
+- [[lessons/03_preterite_vs_imperfect_aspect|📖 Unit 3: 3. Preterite vs Imperfect Aspect]] *(Upcoming)*
+  - *Concepts:* Completed vs Ongoing Past
+- [[lessons/04_stative_verbs_in_past_tenses|📖 Unit 4: 4. Stative Verbs in Past Tenses]] *(Upcoming)*
+  - *Concepts:* Conocer, Saber, Querer, Poder
+- [[lessons/05_the_subjunctive_mood|📖 Unit 5: 5. The Subjunctive Mood]] *(Upcoming)*
+  - *Concepts:* Wishes, Doubts
+- [[lessons/06_narrative_synthesis_practice|📖 Unit 6: 6. Narrative Synthesis & Practice]] *(Upcoming)*
+  - *Concepts:* Complex Composition
 
 ---
 

@@ -30,17 +30,17 @@ flowchart TD
 
 ## ✅ Learning Unit Checklists
 
-- [x] **1. Present Tense Foundations** *(Mastered)*
+- [x] [[lessons/01_present_tense_foundations|**1. Present Tense Foundations**]] *(Mastered)*
   - *Concepts:* Regulars, Pronoun-Drop
-- [ ] **2. Ser vs. Estar & Stem Changers** *(Current Focus)*
+- [ ] [[lessons/02_ser_vs_estar_stem_changers|**2. Ser vs. Estar & Stem Changers**]] 👉 **(Current Focus)**
   - *Concepts:* Essence vs State
-- [ ] **3. Preterite vs Imperfect Aspect** *(Upcoming)*
+- [ ] [[lessons/03_preterite_vs_imperfect_aspect|**3. Preterite vs Imperfect Aspect**]] *(Upcoming)*
   - *Concepts:* Completed vs Ongoing Past
-- [ ] **4. Stative Verbs in Past Tenses** *(Upcoming)*
+- [ ] [[lessons/04_stative_verbs_in_past_tenses|**4. Stative Verbs in Past Tenses**]] *(Upcoming)*
   - *Concepts:* Conocer, Saber, Querer, Poder
-- [ ] **5. The Subjunctive Mood** *(Upcoming)*
+- [ ] [[lessons/05_the_subjunctive_mood|**5. The Subjunctive Mood**]] *(Upcoming)*
   - *Concepts:* Wishes, Doubts
-- [ ] **6. Narrative Synthesis & Practice** *(Upcoming)*
+- [ ] [[lessons/06_narrative_synthesis_practice|**6. Narrative Synthesis & Practice**]] *(Upcoming)*
   - *Concepts:* Complex Composition
 
 ---

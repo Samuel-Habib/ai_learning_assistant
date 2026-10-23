@@ -30,17 +30,17 @@ flowchart TD
 
 ## ✅ Learning Unit Checklists
 
-- [ ] **1. Foundations of Linear Algebra** *(Current Focus)*
+- [ ] [[lessons/01_foundations_of_linear_algebra|**1. Foundations of Linear Algebra**]] 👉 **(Current Focus)**
   - *Concepts:* Vector Spaces & Core Terminology
-- [ ] **2. Primary Mechanics of Linear Algebra** *(Upcoming)*
+- [ ] [[lessons/02_primary_mechanics_of_linear_algebra|**2. Primary Mechanics of Linear Algebra**]] *(Upcoming)*
   - *Concepts:* Linear Independence & Span
-- [ ] **3. Matrix Transformations & Systems** *(Upcoming)*
+- [ ] [[lessons/03_matrix_transformations_systems|**3. Matrix Transformations & Systems**]] *(Upcoming)*
   - *Concepts:* Gaussian Elimination & Inverses
-- [ ] **4. Eigenvalues & Eigenvectors** *(Upcoming)*
+- [ ] [[lessons/04_eigenvalues_eigenvectors|**4. Eigenvalues & Eigenvectors**]] *(Upcoming)*
   - *Concepts:* Diagonalization & Spectral Theory
-- [ ] **5. Orthogonality & Projections** *(Upcoming)*
+- [ ] [[lessons/05_orthogonality_projections|**5. Orthogonality & Projections**]] *(Upcoming)*
   - *Concepts:* Inner Products & Gram-Schmidt
-- [ ] **6. Singular Value Decomposition** *(Upcoming)*
+- [ ] [[lessons/06_singular_value_decomposition|**6. Singular Value Decomposition**]] *(Upcoming)*
   - *Concepts:* Principal Component Analysis & Transfer
 
 ---

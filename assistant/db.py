@@ -6,9 +6,18 @@ to user-facing Obsidian Markdown vaults in learn/md/.
 """
 
 import os
+import re
 import sqlite3
 import datetime
 from typing import Dict, List, Optional, Tuple, Any
+
+def clean_slug(title: str, unit_index: int) -> str:
+    """Converts a unit title into a clean filename slug: e.g. 01_usb_fundamentals.md"""
+    cleaned = re.sub(r'^(?:unit\s*)?\d+[\.\:\s\-]*', '', title, flags=re.IGNORECASE).strip()
+    slug = re.sub(r'[^a-zA-Z0-9]+', '_', cleaned.lower()).strip('_')
+    if not slug:
+        slug = f"unit_{unit_index}"
+    return f"{unit_index:02d}_{slug}.md"
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -276,10 +285,30 @@ class StateManager:
             mermaid_chart = self._generate_mermaid(modules, s_level)
             progress_gauge = self._generate_ascii_gauge(modules, s_level)
 
+            # Ensure lesson notes directory and files exist (only for active subject to stay fast)
+            try:
+                from .lesson_manager import LessonManager
+            except ImportError:
+                from lesson_manager import LessonManager
+            lesson_mgr = LessonManager(md_dir=self.md_dir)
+            if modules and (not active_subject or s_name == active_subject):
+                lesson_mgr.ensure_all_lessons(s_name, modules, s_level)
+
+            # Generate links to individual lesson notes
+            lesson_nav_links = []
+            for i, (m_title, m_sub) in enumerate(modules):
+                slug = clean_slug(m_title, i + 1)
+                slug_stem = slug[:-3] if slug.endswith(".md") else slug
+                active_idx = max(0, min(len(modules) - 1, int(s_level) - 1)) if modules else 0
+                tag = "👉 **(Current Focus)**" if i == active_idx else ("*(Mastered)*" if i < active_idx else "*(Upcoming)*")
+                lesson_nav_links.append(f"- [[lessons/{slug_stem}|📖 Unit {i+1}: {m_title}]] {tag}\n  - *Concepts:* {m_sub}")
+
+            lesson_nav_str = "\n".join(lesson_nav_links) if lesson_nav_links else "- No lessons generated yet."
+
             # Subject Dashboard
             subj_dashboard_content = f"""# 🧭 {s_display}: Study Hub
 
-Welcome to your study space for **{s_display}**. All roadmaps, diagnostic records, and interactive notes are preserved here.
+Welcome to your study space for **{s_display}**. All roadmaps, diagnostic records, interactive lesson notes, and study guides are preserved here.
 
 ---
 
@@ -287,6 +316,13 @@ Welcome to your study space for **{s_display}**. All roadmaps, diagnostic record
 - **Calibrated Frontier:** Level {s_level:.2f} — *{s_desc}*
 
 {progress_gauge}
+
+---
+
+## 📖 Complete Study Lessons
+Read the full textbook-style explanations, circuits, and conceptual notes for each unit:
+
+{lesson_nav_str}
 
 ---
 
@@ -304,13 +340,15 @@ Welcome to your study space for **{s_display}**. All roadmaps, diagnostic record
             with open(os.path.join(subj_dir, "00_DASHBOARD.md"), "w", encoding="utf-8") as f:
                 f.write(subj_dashboard_content)
 
-            # Subject Roadmap & Checklists
+            # Subject Roadmap & Checklists (with direct links to lessons)
             checklist_items = []
             for i, (m_title, m_sub) in enumerate(modules):
                 active_idx = max(0, min(len(modules) - 1, int(s_level) - 1)) if modules else 0
                 checked = "[x]" if i < active_idx else "[ ]"
-                status_note = "*(Mastered)*" if i < active_idx else ("*(Current Focus)*" if i == active_idx else "*(Upcoming)*")
-                checklist_items.append(f"- {checked} **{m_title}** {status_note}\n  - *Concepts:* {m_sub}")
+                status_note = "*(Mastered)*" if i < active_idx else ("👉 **(Current Focus)**" if i == active_idx else "*(Upcoming)*")
+                slug = clean_slug(m_title, i + 1)
+                slug_stem = slug[:-3] if slug.endswith(".md") else slug
+                checklist_items.append(f"- {checked} [[lessons/{slug_stem}|**{m_title}**]] {status_note}\n  - *Concepts:* {m_sub}")
 
             checklist_str = "\n".join(checklist_items) if checklist_items else "- No modules generated yet."
 
@@ -377,11 +415,20 @@ This persistent record tracks every question assessed by your tutor and your con
             pct = int((s_lvl / 5.0) * 100)
             bar_len = int((pct / 100) * 15)
             progress_bar = f"[{'█' * bar_len}{'░' * (15 - bar_len)}] {pct}% (Level {s_lvl:.2f})"
+            s_modules = self.get_curriculum_modules(s_name)
+            active_m_idx = max(0, min(len(s_modules) - 1, int(s_lvl) - 1)) if s_modules else 0
+            if s_modules:
+                curr_slug = clean_slug(s_modules[active_m_idx][0], active_m_idx + 1)
+                curr_slug_stem = curr_slug[:-3] if curr_slug.endswith(".md") else curr_slug
+                lesson_link_str = f" · [[subjects/{s_name}/lessons/{curr_slug_stem}|📖 Current Lesson]]"
+            else:
+                lesson_link_str = ""
+
             master_rows.append(
                 f"### 📚 [[subjects/{s_name}/00_DASHBOARD|{s_display}]]\n"
                 f"- **Progress:** `{progress_bar}`\n"
                 f"- **Current Focus:** {s_desc}\n"
-                f"- **Direct Links:** [[subjects/{s_name}/01_ROADMAP|Roadmap]] · [[subjects/{s_name}/02_DIAGNOSTICS|Placement History]]\n"
+                f"- **Direct Links:** [[subjects/{s_name}/01_ROADMAP|Roadmap]] · [[subjects/{s_name}/02_DIAGNOSTICS|Placement History]]{lesson_link_str}\n"
             )
 
         master_content = f"""# 🧭 Master Study Hub: Adaptive Learning Assistant

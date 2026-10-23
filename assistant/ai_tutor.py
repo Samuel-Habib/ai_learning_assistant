@@ -53,12 +53,12 @@ def call_direct_api(prompt: str) -> Optional[str]:
 
     if gemini_key:
         last_gemini_err = None
-        for model in ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]:
+        for model in ["gemini-1.5-flash", "gemini-flash-latest", "gemini-2.5-flash"]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
             payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=45) as resp:
+                with urllib.request.urlopen(req, timeout=10) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
             except urllib.error.HTTPError as e:
@@ -66,9 +66,12 @@ def call_direct_api(prompt: str) -> Optional[str]:
                     continue
                 last_gemini_err = f"Error contacting Gemini API ({e.code}): {e.reason}"
                 break
+            except (TimeoutError, urllib.error.URLError) as e:
+                last_gemini_err = f"Network error contacting Gemini API: {e}"
+                break
             except Exception as e:
                 last_gemini_err = f"Error contacting Gemini API: {e}"
-                continue
+                break
         if last_gemini_err and not shutil.which("agy"):
             return last_gemini_err
 
@@ -128,14 +131,9 @@ def get_ai_status() -> tuple[bool, str]:
         return True, "Local Antigravity CLI (gemini-3.8-flash)"
     return False, "Offline Mode (No API key found in .env)"
 
-def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 60) -> str:
-    """Invokes AI through direct API (macOS/cross-platform) or system CLI."""
-    # 1. Check direct provider API key
-    direct_resp = call_direct_api(prompt)
-    if direct_resp is not None and not direct_resp.startswith("Error contacting"):
-        return direct_resp
-
-    # 2. Check local CLI
+def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 45) -> str:
+    """Invokes AI through system CLI (Antigravity) or direct provider API (macOS/cross-platform)."""
+    # 1. If running under Antigravity CLI environment, prioritize native CLI
     if shutil.which("agy"):
         cmd = [
             "agy",
@@ -150,13 +148,15 @@ def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int 
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             if proc.returncode == 0 and proc.stdout.strip():
                 return proc.stdout.strip()
-            else:
-                err = proc.stderr.strip() or "CLI exited with non-zero code."
-                return f"Error communicating with AI model: {err}"
         except subprocess.TimeoutExpired:
-            return "AI request timed out. Please try again."
-        except Exception as e:
-            return f"Error contacting AI engine: {e}"
+            pass
+        except Exception:
+            pass
+
+    # 2. Check direct provider API key (Gemini, OpenAI, Anthropic, Groq)
+    direct_resp = call_direct_api(prompt)
+    if direct_resp is not None and not direct_resp.startswith("Error contacting") and not direct_resp.startswith("Network error"):
+        return direct_resp
 
     if direct_resp is not None:
         return direct_resp
@@ -222,7 +222,13 @@ class RealAITutorEngine:
             f"{notes_text}\n"
             f"{history_text}\n\n"
             f"Student Question / Message:\n{user_query}\n\n"
-            f"Your Response (speak naturally as an expert instructor; evaluate reasoning before providing answers):"
+            f"Teaching Directive:\n"
+            f"- Prioritize clear conceptual explanations, physical mechanisms, and architectural intuition first.\n"
+            f"- Structure lessons cleanly with bold section headings (e.g. '◆ 1. Concept Name'), comparisons, and ASCII diagrams for circuits/signals/data flow.\n"
+            f"- Anchor and contrast new concepts with familiar baselines (e.g. UART, I2C, SPI, CAN in embedded systems, or standard fundamentals).\n"
+            f"- Pose an application check or design trade-off scenario ONLY AFTER explaining the underlying mechanisms.\n"
+            f"- If the student is unsure, confused, or asks to start from the beginning, immediately deliver the core ground truth clearly without making them guess in the dark.\n\n"
+            f"Your Response (speak directly as a world-class instructor):"
         )
 
         return call_real_ai(full_ai_prompt)
@@ -252,20 +258,27 @@ class RealAITutorEngine:
             f"You are the student's personal, accuracy-first tutor for {self.subject.capitalize()}.\n"
             f"We are beginning an interactive study session.\n"
             f"- Current Focus: {curr_unit} ({curr_sub})\n"
-            f"- Calibrated Frontier: Level {level:.2f}\n"
-            f"- Course Material: {'Grounded in course documents' if has_mat else 'Using core principles'}\n"
+            f"- Calibrated Knowledge Frontier: Level {level:.2f}\n"
+            f"- Course Material: {'Grounded in course documents' if has_mat else 'Using authoritative domain principles'}\n"
             f"{notes_prompt}\n\n"
-            f"Instructions:\n"
-            f"1. Give a warm, concise opening greeting (2-3 sentences max).\n"
-            f"2. State clearly what concept we are working on today.\n"
-            f"3. If they left notes/questions, acknowledge them.\n"
-            f"4. Pose an engaging, open-ended question or practice prompt to begin our dialogue.\n"
-            f"Speak directly to the student as an expert instructor. Do not lecture on system rules."
+            f"CRITICAL PEDAGOGICAL DIRECTIVE:\n"
+            f"The initial placement check has already established the student's level. DO NOT COLD-QUIZ.\n"
+            f"Do NOT ask trivia questions or test questions about things they have not been taught yet.\n\n"
+            f"Your Instructions:\n"
+            f"1. Warm, encouraging welcome to the session for {self.subject.capitalize()}.\n"
+            f"2. State the active unit we are mastering: {curr_unit} — {curr_sub}.\n"
+            f"3. If the student noted questions in their Obsidian scratchpad, address them directly.\n"
+            f"4. TEACH FIRST (2-3 clear, insightful paragraphs):\n"
+            f"   - Explain the core physical/system mechanisms of this topic clearly.\n"
+            f"   - Contrast with familiar foundational baselines (e.g. UART, I2C, SPI, CAN in embedded/hardware, or standard intuitive baselines).\n"
+            f"   - Explain WHY the system was designed this way, with a concise text/ASCII diagram or structured model if appropriate.\n"
+            f"5. Conclude by inviting them to reflect on this foundational mechanism or ask where they'd like to dive in deeper.\n"
+            f"Speak directly, with high clarity and technical depth. Never make the student guess in the dark."
         )
         try:
             return call_real_ai(prompt)
         except Exception:
-            return f"Welcome to your {self.subject.capitalize()} study session! Today we are working on {curr_unit} ({curr_sub}). To get started: what is your current understanding of this topic, or where would you like to begin?"
+            return f"Welcome to your {self.subject.capitalize()} study session! Today we are working on {curr_unit} ({curr_sub}). Let's walk through the foundational mechanisms and hardware architecture together."
 
 class LocalOpenAIHandler(BaseHTTPRequestHandler):
     tutor: Optional[RealAITutorEngine] = None

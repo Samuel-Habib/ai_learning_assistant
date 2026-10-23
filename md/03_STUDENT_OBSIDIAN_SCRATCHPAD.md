@@ -20,3 +20,10 @@ Write any thoughts, questions, or ideas here while browsing in Obsidian. When yo
 ## 📌 General / Other Questions
 
 *(Add general questions or cross-disciplinary notes below)*
+
+
+---
+
+## 📌 Usb
+
+*(Add your questions or notes for Usb below)*

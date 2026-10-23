@@ -5,6 +5,7 @@ Usage:
   ./learn                      # Interactive menu
   ./learn check [subject]      # Run adaptive placement check
   ./learn chat [subject]       # Start terminal study session
+  ./learn lesson [subject]     # Read/generate comprehensive Obsidian lesson notes
   ./learn roadmap [subject]    # View/update study roadmap
   ./learn notes                # View student notes from Obsidian
   ./learn materials            # Refresh and index course materials
@@ -244,6 +245,37 @@ def cmd_doctor():
     print(f"\n  [{'✓' if aichat_installed else '·'}] AIChat CLI: {'Installed' if aichat_installed else 'Optional (Direct Python REPL active)'}")
     print("-" * 65 + "\n")
 
+def safe_pause():
+    try:
+        input("\nPress Enter to return to menu...")
+    except (EOFError, KeyboardInterrupt):
+        print()
+
+def cmd_lesson(subject: Optional[str] = None):
+    subj = resolve_subject(subject)
+    from assistant.curriculum_planner import CurriculumPlanner
+    from assistant.lesson_manager import LessonManager
+    planner = CurriculumPlanner(subject=subj)
+    lesson_mgr = LessonManager()
+    with Spinner(f"Generating and verifying Obsidian lesson notes for {subj.capitalize()}..."):
+        lesson_mgr.ensure_all_lessons(subj, planner.modules, planner.boundary_level, generate_ai=True)
+        from assistant.db import StateManager
+        StateManager().sync_to_obsidian(active_subject=subj)
+
+    active_idx = max(0, min(len(planner.modules) - 1, int(planner.boundary_level) - 1))
+    curr_title = planner.modules[active_idx][0]
+    lesson_path = lesson_mgr.get_lesson_path(subj, active_idx + 1, curr_title)
+
+    border = style_text("━" * 65, Style.BRIGHT_CYAN)
+    print(f"\n{border}")
+    print(style_text(f"  📖 Lesson Notes for {subj.capitalize()} in Obsidian", Style.BOLD, Style.WHITE))
+    print(f"{border}")
+    print(f"\n  [✓] All {len(planner.modules)} unit lessons are synchronized in your vault:")
+    print(style_text(f"      learn/md/subjects/{subj}/lessons/\n", Style.CYAN))
+    print(f"  👉 Active Lesson (Level {planner.boundary_level:.2f}):")
+    print(style_text(f"      {lesson_path}\n", Style.BOLD, Style.GREEN))
+    print(style_text("  💡 Tip: Open this file in Obsidian to read comprehensive textbook explanations,\n     ASCII schematics, comparison tables, and self-check callouts.\n", Style.DIM))
+
 def interactive_menu():
     while True:
         print_header()
@@ -251,41 +283,45 @@ def interactive_menu():
         print()
         print(style_text("  1", Style.BOLD, Style.BRIGHT_CYAN) + "  📋 Placement Check " + style_text("(find where to start)", Style.DIM))
         print(style_text("  2", Style.BOLD, Style.BRIGHT_CYAN) + "  💬 Study Session " + style_text("(interactive terminal chat)", Style.DIM))
-        print(style_text("  3", Style.BOLD, Style.BRIGHT_CYAN) + "  📊 View Progress & Roadmap")
-        print(style_text("  4", Style.BOLD, Style.BRIGHT_CYAN) + "  📝 View My Notes")
-        print(style_text("  5", Style.BOLD, Style.BRIGHT_CYAN) + "  📚 Refresh Course Materials")
-        print(style_text("  6", Style.BOLD, Style.BRIGHT_CYAN) + "  🩺 System Health Check")
-        print(style_text("  7", Style.BOLD, Style.BRIGHT_CYAN) + "  🚪 Exit")
+        print(style_text("  3", Style.BOLD, Style.BRIGHT_CYAN) + "  📖 Read Lesson Notes in Obsidian " + style_text("(textbook chapters & diagrams)", Style.DIM))
+        print(style_text("  4", Style.BOLD, Style.BRIGHT_CYAN) + "  📊 View Progress & Roadmap")
+        print(style_text("  5", Style.BOLD, Style.BRIGHT_CYAN) + "  📝 View My Notes")
+        print(style_text("  6", Style.BOLD, Style.BRIGHT_CYAN) + "  📚 Refresh Course Materials")
+        print(style_text("  7", Style.BOLD, Style.BRIGHT_CYAN) + "  🩺 System Health Check")
+        print(style_text("  8", Style.BOLD, Style.BRIGHT_CYAN) + "  🚪 Exit")
 
         try:
-            choice = input(style_text("\n  ▸ Select [1-7]: ", Style.BOLD)).strip()
+            choice = input(style_text("\n  ▸ Select [1-8]: ", Style.BOLD)).strip()
         except (EOFError, KeyboardInterrupt):
             print(style_text("\n  👋 Happy studying! See you next time.\n", Style.DIM, Style.CYAN))
             break
 
         if choice == "1":
             cmd_probe()
-            input("\nPress Enter to return to menu...")
+            safe_pause()
         elif choice == "2":
             cmd_chat()
-            input("\nPress Enter to return to menu...")
+            safe_pause()
         elif choice == "3":
-            cmd_status()
-            input("\nPress Enter to return to menu...")
+            cmd_lesson()
+            safe_pause()
         elif choice == "4":
-            cmd_sync()
-            input("\nPress Enter to return to menu...")
+            cmd_status()
+            safe_pause()
         elif choice == "5":
-            cmd_ingest()
-            input("\nPress Enter to return to menu...")
+            cmd_sync()
+            safe_pause()
         elif choice == "6":
+            cmd_ingest()
+            safe_pause()
+        elif choice == "7":
             cmd_doctor()
-            input("\nPress Enter to return to menu...")
-        elif choice in ["7", "q", "exit"]:
+            safe_pause()
+        elif choice in ["8", "q", "exit"]:
             print(style_text("\n  👋 Happy studying! See you next time.\n", Style.DIM, Style.CYAN))
             break
         else:
-            print("Please select 1-7.")
+            print("Please select 1-8.")
 
 def main():
     if len(sys.argv) > 1:
@@ -296,6 +332,8 @@ def main():
             cmd_probe(subject=sub_arg)
         elif arg in ["chat", "start", "session"]:
             cmd_chat(subject=sub_arg)
+        elif arg in ["lesson", "lessons", "read", "chapter"]:
+            cmd_lesson(subject=sub_arg)
         elif arg in ["roadmap"]:
             cmd_roadmap(subject=sub_arg)
         elif arg in ["progress", "status"]:
