@@ -52,20 +52,25 @@ def call_direct_api(prompt: str) -> Optional[str]:
     groq_key = os.environ.get("GROQ_API_KEY")
 
     if gemini_key:
+        last_gemini_err = None
         for model in ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
             payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=30) as resp:
+                with urllib.request.urlopen(req, timeout=45) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     continue
-                return f"Error contacting Gemini API ({e.code}): {e.reason}"
+                last_gemini_err = f"Error contacting Gemini API ({e.code}): {e.reason}"
+                break
             except Exception as e:
-                return f"Error contacting Gemini API: {e}"
+                last_gemini_err = f"Error contacting Gemini API: {e}"
+                continue
+        if last_gemini_err and not shutil.which("agy"):
+            return last_gemini_err
 
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     if anthropic_key:
@@ -127,7 +132,7 @@ def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int 
     """Invokes AI through direct API (macOS/cross-platform) or system CLI."""
     # 1. Check direct provider API key
     direct_resp = call_direct_api(prompt)
-    if direct_resp is not None:
+    if direct_resp is not None and not direct_resp.startswith("Error contacting"):
         return direct_resp
 
     # 2. Check local CLI
@@ -152,6 +157,9 @@ def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int 
             return "AI request timed out. Please try again."
         except Exception as e:
             return f"Error contacting AI engine: {e}"
+
+    if direct_resp is not None:
+        return direct_resp
 
     return (
         "No AI provider configured. Set an API key in your terminal or .env file:\n"
