@@ -1,49 +1,26 @@
-# 🧭 Linear_algebra: Study Hub & Dashboard
+# 🧭 Master Study Hub: Adaptive Learning Assistant
 
-Welcome to your study dashboard. This space organizes your syllabus, visual concept maps, and interactive practice exercises.
-
----
-
-## 📊 Topic Progress
-- **Subject:** Linear_algebra
-- **Calibrated Frontier:** Level 1.50
-
-```
-1. Foundations of Linear_algeb   [██████████░░░░░░░░░░] Current Focus
-2. Primary Mechanics of Linear   [░░░░░░░░░░░░░░░░░░░░] Next Up
-3. Core Procedural Methods       [░░░░░░░░░░░░░░░░░░░░] Queued
-4. Nuances & Edge Cases          [░░░░░░░░░░░░░░░░░░░░] Queued
-5. Advanced Theory & Synthesis   [░░░░░░░░░░░░░░░░░░░░] Queued
-6. Practical Transfer & Master   [░░░░░░░░░░░░░░░░░░░░] Queued
-```
+Welcome to your central learning vault. Track your multi-subject progress, view generated roadmaps, and review synced study notes.
 
 ---
 
-## 🗺️ Study Roadmap
+## 📊 Enrolled Subjects (2)
 
-```mermaid
-flowchart TD
-    classDef mastered fill:#2e7d32,stroke:#1b5e20,stroke-width:2px,color:#fff;
-    classDef current fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#fff;
-    classDef upcoming fill:#37474f,stroke:#263238,stroke-width:1px,color:#cfd8dc;
+### 📚 [[subjects/linear_algebra/00_DASHBOARD|Linear Algebra]]
+- **Progress:** `[████░░░░░░░░░░░] 30% (Level 1.50)`
+- **Current Focus:** 1. Foundations of Linear Algebra
+- **Direct Links:** [[subjects/linear_algebra/01_ROADMAP|Roadmap]] · [[subjects/linear_algebra/02_DIAGNOSTICS|Placement History]]
+### 📚 [[subjects/spanish/00_DASHBOARD|Spanish]]
+- **Progress:** `[███████░░░░░░░░] 53% (Level 2.65)`
+- **Current Focus:** 2. Ser vs. Estar & Stem Changers
+- **Direct Links:** [[subjects/spanish/01_ROADMAP|Roadmap]] · [[subjects/spanish/02_DIAGNOSTICS|Placement History]]
 
-    M1["1. Foundations of Linear_algebra<br/><i>Core Terminology & Axioms</i>"]:::current
-    M2["2. Primary Mechanics of Linear_algebra<br/><i>Standard Rules & Direct Applications</i>"]:::upcoming
-    M3["3. Core Procedural Methods<br/><i>Multi-step Reasoning & Problem Solving</i>"]:::upcoming
-    M4["4. Nuances & Edge Cases<br/><i>Subtle Distinctions & Misconceptions</i>"]:::upcoming
-    M5["5. Advanced Theory & Synthesis<br/><i>Complex Integration & Systemic Analysis</i>"]:::upcoming
-    M6["6. Practical Transfer & Mastery<br/><i>Unassisted Problem Solving</i>"]:::upcoming
-
-    M1 ==>|Current Frontier| M2
-    M2 --> M3
-    M3 --> M4
-    M4 --> M5
-    M5 --> M6
-```
 
 ---
 
-## 🗂️ Study Units
-- [[01_CURRICULUM_ROADMAP|Full Study Roadmap & Timeline Visuals]]
-- [[02_BOUNDARY_CALIBRATION|Placement Summary & Assessment Notes]]
+## 📝 Personal Notes
 - [[03_STUDENT_OBSIDIAN_SCRATCHPAD|My Study Notes & Questions]] 📝 *(Auto-synced with terminal sessions)*
+
+---
+
+*State backed by persistent SQLite storage at `data/learning_state.db` and rendered for Obsidian.*

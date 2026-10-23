@@ -86,7 +86,12 @@ class TerminalChatRunner:
         print()
 
         engine = RealAITutorEngine(subject=self.subject)
-        history = []
+        try:
+            from .db import StateManager
+        except ImportError:
+            from db import StateManager
+        db = StateManager()
+        history = db.get_chat_history(self.subject, limit=6)
 
         # Tutor initiates dialogue proactively
         try:
@@ -94,10 +99,12 @@ class TerminalChatRunner:
                 greeting = engine.generate_opening_greeting()
             print_tutor_message(greeting)
             history.append({"role": "assistant", "content": greeting})
+            db.append_chat_message(self.subject, "assistant", greeting)
         except Exception:
             default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! How would you describe your current goals or questions in this subject?"
             print_tutor_message(default_greeting)
             history.append({"role": "assistant", "content": default_greeting})
+            db.append_chat_message(self.subject, "assistant", default_greeting)
 
         while True:
             user_msg = prompt_user()
@@ -109,12 +116,14 @@ class TerminalChatRunner:
                 print(style_text("\n✨ Session paused. Your notes are saved in learn/md/.", Style.DIM, Style.GREEN))
                 break
 
+            db.append_chat_message(self.subject, "user", user_msg)
             try:
                 with Spinner("Thinking..."):
                     response = engine.formulate_response(user_msg, history=history)
                 print_tutor_message(response)
                 history.append({"role": "user", "content": user_msg})
                 history.append({"role": "assistant", "content": response})
+                db.append_chat_message(self.subject, "assistant", response)
             except Exception as e:
                 print(style_text(f"\n⚠ Error: {e}", Style.RED))
 

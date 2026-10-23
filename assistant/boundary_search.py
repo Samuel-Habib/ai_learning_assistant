@@ -14,9 +14,13 @@ from typing import List, Dict, Optional, Tuple
 try:
     from .rag_manager import MaterialRAGManager
     from .ai_tutor import call_real_ai
+    from .db import StateManager
+    from .json_utils import robust_json_loads
 except ImportError:
     from rag_manager import MaterialRAGManager
     from ai_tutor import call_real_ai
+    from db import StateManager
+    from json_utils import robust_json_loads
 
 try:
     from .ui import Spinner, style_text, Style
@@ -48,14 +52,18 @@ class KnowledgeBoundarySearch:
     """
     Executes an ascending probe (progressively harder questions) followed by
     an oscillatory refinement around the point of cognitive breakdown for any subject.
+    State is persisted to SQLite and synced to user-facing Markdown vaults in md/.
     """
 
     def __init__(self, subject: str = "spanish"):
         self.subject = subject.lower().strip()
+        self.db = StateManager(md_dir=MD_DIR)
         self.rag = MaterialRAGManager()
         self.results: List[ProbeResult] = []
-        self.pinpointed_boundary: Optional[float] = None
-        self.boundary_description: str = ""
+
+        subj_record = self.db.get_or_create_subject(self.subject)
+        self.pinpointed_boundary: Optional[float] = float(subj_record.get('frontier_level', 1.0))
+        self.boundary_description: str = subj_record.get('boundary_description', '')
         self.probe_bank: List[DiagnosticProbe] = self._load_or_generate_probes()
 
     def _get_spanish_fallback_bank(self) -> List[DiagnosticProbe]:
@@ -142,9 +150,8 @@ Respond strictly in valid JSON format with NO markdown wrapping:
 
         try:
             ai_out = call_real_ai(gen_prompt)
-            clean_json = ai_out.replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_json)
-            if isinstance(data, list) and len(data) >= 5:
+            data = robust_json_loads(ai_out, default=[])
+            if isinstance(data, list) and len(data) >= 3:
                 probes = []
                 for item in data[:5]:
                     probes.append(DiagnosticProbe(
@@ -287,10 +294,10 @@ Respond strictly in JSON format with no markdown:
 
         try:
             ai_out = call_real_ai(eval_prompt)
-            clean_json = ai_out.replace("```json", "").replace("```", "").strip()
-            data = json.loads(clean_json)
-            passed = bool(data.get("passed", False))
-            analysis = str(data.get("analysis", ""))
+            data = robust_json_loads(ai_out, default={})
+            if isinstance(data, dict):
+                passed = bool(data.get("passed", False))
+                analysis = str(data.get("analysis", ""))
         except Exception:
             # Fallback heuristic: check answer length and concept overlap
             resp_lower = response.strip().lower()
@@ -378,6 +385,7 @@ This document records your initial placement check and tracks the concepts you h
             with Spinner("Evaluating your reasoning..."):
                 result = self.evaluate_response(probe, ans)
             self.results.append(result)
+            self.db.record_diagnostic_result(self.subject, probe.level, probe.topic, probe.question, ans, result.passed, result.reasoning_analysis)
 
             if result.passed:
                 print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
@@ -408,6 +416,7 @@ This document records your initial placement check and tracks the concepts you h
             with Spinner("Evaluating prerequisite reasoning..."):
                 res_down = self.evaluate_response(osc_down, ans_down)
             self.results.append(res_down)
+            self.db.record_diagnostic_result(self.subject, osc_down.level, osc_down.topic, osc_down.question, ans_down, res_down.passed, res_down.reasoning_analysis)
             if res_down.passed:
                 print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
             else:
@@ -429,6 +438,7 @@ This document records your initial placement check and tracks the concepts you h
             with Spinner("Evaluating nuance discrimination..."):
                 res_target = self.evaluate_response(osc_target, ans_target)
             self.results.append(res_target)
+            self.db.record_diagnostic_result(self.subject, osc_target.level, osc_target.topic, osc_target.question, ans_target, res_target.passed, res_target.reasoning_analysis)
             if res_target.passed:
                 print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
                 self.pinpointed_boundary = round(breakdown_level - 0.1, 2)
@@ -449,6 +459,8 @@ This document records your initial placement check and tracks the concepts you h
         print(style_text("  Your study notes and roadmap in Obsidian (learn/md/) are updated.", Style.DIM))
         print(f"{border}\n")
 
+        self.db.set_subject_boundary(self.subject, self.pinpointed_boundary, self.boundary_description)
+        self.db.sync_to_obsidian(active_subject=self.subject)
         self.log_calibration_to_obsidian()
         return self.pinpointed_boundary
 

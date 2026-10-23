@@ -48,11 +48,21 @@ def print_header():
 def resolve_subject(explicit_subject: Optional[str] = None) -> str:
     """
     Resolves target subject by checking command args, scanning material/,
-    and prompting the student with clear choices.
+    and querying persistent SQLite database state.
     """
     rag = MaterialRAGManager()
     materials = rag.scan_materials()
-    subjects = list(materials.keys())
+    material_subjects = list(materials.keys())
+
+    from assistant.db import StateManager
+    db = StateManager()
+    db_subjects = [s["name"] for s in db.list_subjects()]
+
+    # Combine unique subjects from material/ folders and SQLite database
+    subjects = []
+    for s in material_subjects + db_subjects:
+        if s not in subjects:
+            subjects.append(s)
 
     # 1. If explicitly passed via command line (e.g. ./learn check biology)
     if explicit_subject:
@@ -61,14 +71,18 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
         os.makedirs(subj_dir, exist_ok=True)
         sync = ObsidianNoteSync()
         sync.ensure_subject_section(subj_clean)
+        db.get_or_create_subject(subj_clean)
         return subj_clean
 
     # 2. Interactive selection prompt
     print("\n📚 Choose a subject to study:")
     if subjects:
         for idx, s in enumerate(subjects, 1):
-            count = len(materials[s])
-            print(f"  {idx}. {s.capitalize()} ({count} material file{'s' if count != 1 else ''})")
+            count = len(materials.get(s, []))
+            s_data = db.get_subject(s)
+            lvl_str = f" · Level {s_data['frontier_level']:.2f}" if s_data else ""
+            file_str = f"{count} material file{'s' if count != 1 else ''}" if count > 0 else "general knowledge"
+            print(f"  {idx}. {s.replace('_', ' ').title()}{lvl_str} ({file_str})")
         print(f"  {len(subjects) + 1}. Add or type a new subject / topic...")
     else:
         print("  1. Add or type a new subject / topic...")
@@ -80,13 +94,17 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
         choice = ""
 
     if not choice:
-        return subjects[0] if subjects else "general"
+        default_s = subjects[0] if subjects else "general"
+        db.get_or_create_subject(default_s)
+        return default_s
 
     # If the user typed a number matching an existing subject
     if choice.isdigit():
         num = int(choice)
         if 1 <= num <= len(subjects):
-            return subjects[num - 1]
+            selected = subjects[num - 1]
+            db.get_or_create_subject(selected)
+            return selected
         elif num == len(subjects) + 1:
             try:
                 new_subj = input("\nEnter the subject name (e.g. biology, linear_algebra, history): ").strip()
@@ -95,17 +113,21 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
                     os.makedirs(os.path.join(rag.material_dir, new_clean), exist_ok=True)
                     sync = ObsidianNoteSync()
                     sync.ensure_subject_section(new_clean)
+                    db.get_or_create_subject(new_clean)
                     print(f"✓ Configured subject '{new_subj.capitalize()}' in material/{new_clean}/")
                     return new_clean
             except (EOFError, KeyboardInterrupt):
                 pass
-            return subjects[0] if subjects else "general"
+            default_s = subjects[0] if subjects else "general"
+            db.get_or_create_subject(default_s)
+            return default_s
 
     # If the user directly typed the name of a topic (e.g. 'biology' or 'french')
     clean_choice = choice.lower().replace(" ", "_")
     os.makedirs(os.path.join(rag.material_dir, clean_choice), exist_ok=True)
     sync = ObsidianNoteSync()
     sync.ensure_subject_section(clean_choice)
+    db.get_or_create_subject(clean_choice)
     if clean_choice not in subjects:
         print(f"✓ Configured subject '{choice.capitalize()}' in material/{clean_choice}/")
     return clean_choice

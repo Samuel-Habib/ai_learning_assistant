@@ -12,9 +12,13 @@ from typing import List, Tuple, Dict, Optional
 try:
     from .rag_manager import MaterialRAGManager
     from .ai_tutor import call_real_ai
+    from .db import StateManager
+    from .json_utils import robust_json_loads
 except ImportError:
     from rag_manager import MaterialRAGManager
     from ai_tutor import call_real_ai
+    from db import StateManager
+    from json_utils import robust_json_loads
 
 try:
     from .ui import style_text, Style
@@ -35,27 +39,26 @@ class CurriculumPlanner:
     def __init__(self, subject: str = "spanish", boundary_level: Optional[float] = None, md_dir: str = MD_DIR):
         self.subject = subject.lower().strip()
         self.md_dir = md_dir
-        self.boundary_level = boundary_level if boundary_level is not None else self._read_calibrated_boundary()
+        self.db = StateManager(md_dir=self.md_dir)
+        subj_record = self.db.get_or_create_subject(self.subject)
+
+        if boundary_level is not None:
+            self.boundary_level = float(boundary_level)
+            self.db.set_subject_boundary(self.subject, self.boundary_level, subj_record.get('boundary_description', ''))
+        else:
+            self.boundary_level = float(subj_record.get('frontier_level', 1.0))
+
         self.rag = MaterialRAGManager()
         self.modules: List[Tuple[str, str]] = self._get_modules()
 
-    def _read_calibrated_boundary(self) -> float:
-        """Reads the student's actual calibrated boundary level from 02_BOUNDARY_CALIBRATION.md."""
-        calib_file = os.path.join(self.md_dir, "02_BOUNDARY_CALIBRATION.md")
-        if os.path.exists(calib_file):
-            try:
-                with open(calib_file, "r", encoding="utf-8") as f:
-                    content = f.read()
-                m = re.search(r'Level\s+([0-9\.]+)', content)
-                if m:
-                    return float(m.group(1))
-            except Exception:
-                pass
-        return 1.0
-
     def _get_modules(self) -> List[Tuple[str, str]]:
-        """Returns 5-6 structured progression modules for the given subject."""
-        # Try to dynamically extract modules from course materials using AI
+        """Returns 5-6 structured progression modules for the given subject (from SQLite or dynamic AI)."""
+        # 1. Check if modules already exist in persistent SQLite database
+        saved_modules = self.db.get_curriculum_modules(self.subject)
+        if saved_modules and len(saved_modules) >= 3:
+            return saved_modules
+
+        # 2. Try to dynamically extract modules from course materials using AI
         chunks = self.rag.retrieve_context("contents syllabus chapters overview introduction", subject=self.subject, top_k=4)
         context = ""
         for c in chunks:
@@ -83,15 +86,16 @@ Respond strictly in valid JSON format:
 ]"""
             try:
                 out = call_real_ai(prompt)
-                clean_json = out.replace("```json", "").replace("```", "").strip()
-                data = json.loads(clean_json)
+                data = robust_json_loads(out, default=[])
                 if isinstance(data, list) and len(data) >= 3:
-                    return [(str(item.get("title", f"Unit {i+1}")), str(item.get("subtitle", ""))) for i, item in enumerate(data[:6])]
+                    extracted = [(str(item.get("title", f"Unit {i+1}")), str(item.get("subtitle", ""))) for i, item in enumerate(data[:6])]
+                    self.db.save_curriculum_modules(self.subject, extracted, self.boundary_level)
+                    return extracted
             except Exception:
                 pass
 
         if self.subject == "spanish":
-            return [
+            default_spanish = [
                 ("1. Present Tense Foundations", "Regulars, Pronoun-Drop, Agreement"),
                 ("2. Ser vs. Estar & Stem Changers", "Essence vs State, Boot Alternation"),
                 ("3. Preterite vs Imperfect Aspect", "Completed vs Ongoing Past"),
@@ -99,9 +103,11 @@ Respond strictly in valid JSON format:
                 ("5. The Subjunctive Mood", "Wishes, Doubts, Impersonal Triggers"),
                 ("6. Narrative Synthesis & Practice", "Complex Sentences & Composition")
             ]
+            self.db.save_curriculum_modules(self.subject, default_spanish, self.boundary_level)
+            return default_spanish
 
         # Standard generic curriculum structure
-        return [
+        default_generic = [
             (f"1. Foundations of {self.subject.capitalize()}", "Core Terminology & Axioms"),
             (f"2. Primary Mechanics of {self.subject.capitalize()}", "Standard Rules & Direct Applications"),
             (f"3. Core Procedural Methods", "Multi-step Reasoning & Problem Solving"),
@@ -109,6 +115,8 @@ Respond strictly in valid JSON format:
             (f"5. Advanced Theory & Synthesis", "Complex Integration & Systemic Analysis"),
             (f"6. Practical Transfer & Mastery", "Unassisted Problem Solving")
         ]
+        self.db.save_curriculum_modules(self.subject, default_generic, self.boundary_level)
+        return default_generic
 
     def generate_mermaid_diagram(self) -> str:
         """Generates a clean Mermaid roadmap diagram reflecting current focus."""
@@ -231,68 +239,13 @@ Respond strictly in valid JSON format:
         print(f"{border}\n")
 
     def update_dashboard(self) -> None:
-        """Updates the master dashboard in 00_INDEX_DASHBOARD.md."""
-        dashboard_file = os.path.join(self.md_dir, "00_INDEX_DASHBOARD.md")
-        roadmap_file = os.path.join(self.md_dir, "01_CURRICULUM_ROADMAP.md")
-        os.makedirs(self.md_dir, exist_ok=True)
-
-        gauge = self.generate_progress_gauge()
-        mermaid = self.generate_mermaid_diagram()
-
-        dashboard_content = f"""# 🧭 {self.subject.capitalize()}: Study Hub & Dashboard
-
-Welcome to your study dashboard. This space organizes your syllabus, visual concept maps, and interactive practice exercises.
-
----
-
-## 📊 Topic Progress
-- **Subject:** {self.subject.capitalize()}
-- **Calibrated Frontier:** Level {self.boundary_level:.2f}
-
-{gauge}
-
----
-
-## 🗺️ Study Roadmap
-
-{mermaid}
-
----
-
-## 🗂️ Study Units
-- [[01_CURRICULUM_ROADMAP|Full Study Roadmap & Timeline Visuals]]
-- [[02_BOUNDARY_CALIBRATION|Placement Summary & Assessment Notes]]
-- [[03_STUDENT_OBSIDIAN_SCRATCHPAD|My Study Notes & Questions]] 📝 *(Auto-synced with terminal sessions)*
-"""
-        try:
-            with open(dashboard_file, "w", encoding="utf-8") as f:
-                f.write(dashboard_content)
-            print(f"✓ Updated Obsidian dashboard at {dashboard_file} ({self.subject.capitalize()} - Level {self.boundary_level:.2f})")
-        except Exception as e:
-            print(f"Warning: Failed to update dashboard: {e}")
-
-        # Update Roadmap
-        roadmap_content = f"""# 🗺️ {self.subject.capitalize()} Study Roadmap
-
-A structured learning progression from foundational concepts to advanced independent mastery.
-
----
-
-## 🧭 Topic Sequence
-
-{mermaid}
-
----
-
-## 📊 Progress Overview
-
-{gauge}
-"""
-        try:
-            with open(roadmap_file, "w", encoding="utf-8") as f:
-                f.write(roadmap_content)
-        except Exception:
-            pass
+        """Updates persistent SQLite state and synchronizes Obsidian Markdown vaults."""
+        active_idx = max(0, min(len(self.modules) - 1, int(self.boundary_level) - 1)) if self.modules else 0
+        desc = self.modules[active_idx][0] if self.modules else "In progress"
+        self.db.set_subject_boundary(self.subject, self.boundary_level, desc)
+        self.db.save_curriculum_modules(self.subject, self.modules, self.boundary_level)
+        self.db.sync_to_obsidian(active_subject=self.subject)
+        print(f"✓ Synchronized Obsidian vault in md/ ({self.subject.capitalize()} - Level {self.boundary_level:.2f})")
 
 if __name__ == "__main__":
     import sys

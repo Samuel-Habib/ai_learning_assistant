@@ -1,10 +1,10 @@
-# 🗺️ Linear_algebra Study Roadmap
+# 🗺️ Linear Algebra: Study Roadmap & Learning Units
 
-A structured learning progression from foundational concepts to advanced independent mastery.
+A structured progression from foundational axioms to independent problem solving.
 
 ---
 
-## 🧭 Topic Sequence
+## 🧭 Topic Sequence Chart
 
 ```mermaid
 flowchart TD
@@ -12,12 +12,12 @@ flowchart TD
     classDef current fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#fff;
     classDef upcoming fill:#37474f,stroke:#263238,stroke-width:1px,color:#cfd8dc;
 
-    M1["1. Foundations of Linear_algebra<br/><i>Core Terminology & Axioms</i>"]:::current
-    M2["2. Primary Mechanics of Linear_algebra<br/><i>Standard Rules & Direct Applications</i>"]:::upcoming
-    M3["3. Core Procedural Methods<br/><i>Multi-step Reasoning & Problem Solving</i>"]:::upcoming
-    M4["4. Nuances & Edge Cases<br/><i>Subtle Distinctions & Misconceptions</i>"]:::upcoming
-    M5["5. Advanced Theory & Synthesis<br/><i>Complex Integration & Systemic Analysis</i>"]:::upcoming
-    M6["6. Practical Transfer & Mastery<br/><i>Unassisted Problem Solving</i>"]:::upcoming
+    M1["1. Foundations of Linear Algebra<br/><i>Vector Spaces & Core Terminology</i>"]:::current
+    M2["2. Primary Mechanics of Linear Algebra<br/><i>Linear Independence & Span</i>"]:::upcoming
+    M3["3. Matrix Transformations & Systems<br/><i>Gaussian Elimination & Inverses</i>"]:::upcoming
+    M4["4. Eigenvalues & Eigenvectors<br/><i>Diagonalization & Spectral Theory</i>"]:::upcoming
+    M5["5. Orthogonality & Projections<br/><i>Inner Products & Gram-Schmidt</i>"]:::upcoming
+    M6["6. Singular Value Decomposition<br/><i>Principal Component Analysis & Transfer</i>"]:::upcoming
 
     M1 ==>|Current Frontier| M2
     M2 --> M3
@@ -28,13 +28,21 @@ flowchart TD
 
 ---
 
-## 📊 Progress Overview
+## ✅ Learning Unit Checklists
 
-```
-1. Foundations of Linear_algeb   [██████████░░░░░░░░░░] Current Focus
-2. Primary Mechanics of Linear   [░░░░░░░░░░░░░░░░░░░░] Next Up
-3. Core Procedural Methods       [░░░░░░░░░░░░░░░░░░░░] Queued
-4. Nuances & Edge Cases          [░░░░░░░░░░░░░░░░░░░░] Queued
-5. Advanced Theory & Synthesis   [░░░░░░░░░░░░░░░░░░░░] Queued
-6. Practical Transfer & Master   [░░░░░░░░░░░░░░░░░░░░] Queued
-```
+- [ ] **1. Foundations of Linear Algebra** *(Current Focus)*
+  - *Concepts:* Vector Spaces & Core Terminology
+- [ ] **2. Primary Mechanics of Linear Algebra** *(Upcoming)*
+  - *Concepts:* Linear Independence & Span
+- [ ] **3. Matrix Transformations & Systems** *(Upcoming)*
+  - *Concepts:* Gaussian Elimination & Inverses
+- [ ] **4. Eigenvalues & Eigenvectors** *(Upcoming)*
+  - *Concepts:* Diagonalization & Spectral Theory
+- [ ] **5. Orthogonality & Projections** *(Upcoming)*
+  - *Concepts:* Inner Products & Gram-Schmidt
+- [ ] **6. Singular Value Decomposition** *(Upcoming)*
+  - *Concepts:* Principal Component Analysis & Transfer
+
+---
+
+- [[00_DASHBOARD|← Back to Linear Algebra Hub]] | [[../../00_INDEX_DASHBOARD|Master Hub]]

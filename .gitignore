@@ -36,3 +36,10 @@ Thumbs.db
 # Logs & temp files
 *.log
 scratch/
+
+# SQLite State Databases
+data/*.db
+*.db
+*.sqlite
+*.sqlite3
+
