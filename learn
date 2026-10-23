@@ -62,6 +62,8 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
         subj_clean = explicit_subject.strip().lower()
         subj_dir = os.path.join(rag.material_dir, subj_clean)
         os.makedirs(subj_dir, exist_ok=True)
+        sync = ObsidianNoteSync()
+        sync.ensure_subject_section(subj_clean)
         return subj_clean
 
     # 2. Interactive selection prompt
@@ -94,6 +96,8 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
                 if new_subj:
                     new_clean = new_subj.lower().replace(" ", "_")
                     os.makedirs(os.path.join(rag.material_dir, new_clean), exist_ok=True)
+                    sync = ObsidianNoteSync()
+                    sync.ensure_subject_section(new_clean)
                     print(f"✓ Configured subject '{new_subj.capitalize()}' in material/{new_clean}/")
                     return new_clean
             except (EOFError, KeyboardInterrupt):
@@ -103,6 +107,8 @@ def resolve_subject(explicit_subject: Optional[str] = None) -> str:
     # If the user directly typed the name of a topic (e.g. 'biology' or 'french')
     clean_choice = choice.lower().replace(" ", "_")
     os.makedirs(os.path.join(rag.material_dir, clean_choice), exist_ok=True)
+    sync = ObsidianNoteSync()
+    sync.ensure_subject_section(clean_choice)
     if clean_choice not in subjects:
         print(f"✓ Configured subject '{choice.capitalize()}' in material/{clean_choice}/")
     return clean_choice

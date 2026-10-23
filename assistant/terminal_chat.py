@@ -51,74 +51,48 @@ class TerminalChatRunner:
         return keys
 
     def start_session(self, interactive_repl: bool = True):
-        print("\n" + "-"*60)
-        print(f"  Study Session: {self.subject.capitalize()}")
-        print("-" * 60)
-
-        # Sync & display student Obsidian notes if present
-        notes = self.sync.read_scratchpad_notes()
-        if notes:
-            print("\nNotes from your Obsidian scratchpad:")
-            for n in notes:
-                print(f"  • {n}")
-            print()
-
-        mat_files = self.rag_mgr.get_source_file_args(self.subject)
-        keys = self.check_env_keys()
-
-        if keys:
-            primary_key = list(keys.keys())[0]
-            env = os.environ.copy()
-            env["AICHAT_CONFIG_DIR"] = AICHAT_DIR
-
-            model_map = {
-                "GEMINI_API_KEY": "gemini:gemini-1.5-flash",
-                "OPENAI_API_KEY": "openai:gpt-4o",
-                "ANTHROPIC_API_KEY": "claude:claude-3-5-sonnet-20241022",
-                "GROQ_API_KEY": "groq:llama-3.3-70b-versatile"
-            }
-            chosen_model = model_map.get(primary_key, "gemini:gemini-1.5-flash")
-
-            cmd = [self.aichat_bin, "-m", chosen_model, "-r", "accuracy-tutor", "-s", self.subject]
-
-            try:
-                proc = subprocess.run(cmd, env=env)
-                if proc.returncode != 0:
-                    self.run_direct_repl()
-            except Exception as e:
-                print(f"AIChat CLI was unable to run ({e}). Starting direct tutor session...")
-                self.run_direct_repl()
-        else:
-            # Start real AI bridge server
-            server_thread = threading.Thread(target=start_ai_server, args=(8765, self.subject), daemon=True)
-            server_thread.start()
-            time.sleep(0.3)
-
-            env = os.environ.copy()
-            env["AICHAT_CONFIG_DIR"] = AICHAT_DIR
-
-            cmd = [self.aichat_bin, "-m", "local-tutor:accuracy-adaptive", "-r", "accuracy-tutor", "-s", self.subject]
-
-            if interactive_repl:
-                try:
-                    proc = subprocess.run(cmd, env=env)
-                    if proc.returncode != 0:
-                        self.run_direct_repl()
-                except KeyboardInterrupt:
-                    print("\n\nSession paused. Your notes are saved in learn/md/.")
-                except Exception as e:
-                    print(f"AIChat CLI was unable to run ({e}). Starting direct tutor session...")
-                    self.run_direct_repl()
+        # Default to native interactive tutor dialogue for full RAG & Obsidian grounding
+        self.run_direct_repl()
 
     def run_direct_repl(self):
-        """Native interactive tutor dialogue loop as a reliable fallback."""
-        print("\n" + "=" * 60)
-        print(f"  Interactive Dialogue: {self.subject.capitalize()} Tutor")
-        print("  Type your response or question below. Type 'exit' to return to menu.")
-        print("=" * 60 + "\n")
+        """Native interactive tutor dialogue with full RAG and Obsidian sync."""
+        print("\n" + "=" * 65)
+        print(f"  Interactive Study Session: {self.subject.capitalize()} Tutor")
+        print("  Type your questions or answers below. Type 'exit' to return to menu.")
+        print("=" * 65)
+
+        # Sync & display student Obsidian notes for this subject
+        notes = self.sync.read_scratchpad_notes(subject=self.subject)
+        if notes:
+            print(f"\nNotes from your Obsidian scratchpad ({self.subject.capitalize()}):")
+            for n in notes:
+                print(f"  • {n}")
+
+        # Check course material status
+        mats = self.rag_mgr.scan_materials()
+        file_count = len(mats.get(self.subject, []))
+        if file_count > 0:
+            print(f"\nCourse Material: {file_count} document(s) indexed from material/{self.subject}/")
+        else:
+            print(f"\nCourse Material: General {self.subject.capitalize()} knowledge (drop PDFs in material/{self.subject}/ anytime)")
+
+        print("-" * 65 + "\n")
 
         engine = RealAITutorEngine(subject=self.subject)
         history = []
+
+        # Tutor initiates dialogue proactively
+        print("Tutor is preparing your session...", end="", flush=True)
+        try:
+            greeting = engine.generate_opening_greeting()
+            print("\r" + " " * 45 + "\r", end="", flush=True)
+            print("Tutor > " + greeting + "\n")
+            history.append({"role": "assistant", "content": greeting})
+        except Exception as e:
+            print("\r" + " " * 45 + "\r", end="", flush=True)
+            default_greeting = f"Welcome to your {self.subject.capitalize()} study session! How would you describe your current goals or questions in this subject?"
+            print("Tutor > " + default_greeting + "\n")
+            history.append({"role": "assistant", "content": default_greeting})
 
         while True:
             try:

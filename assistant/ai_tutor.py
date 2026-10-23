@@ -52,15 +52,20 @@ def call_direct_api(prompt: str) -> Optional[str]:
     groq_key = os.environ.get("GROQ_API_KEY")
 
     if gemini_key:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
-        payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        except Exception as e:
-            return f"Error contacting Gemini API: {e}"
+        for model in ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"]:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
+            payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    continue
+                return f"Error contacting Gemini API ({e.code}): {e.reason}"
+            except Exception as e:
+                return f"Error contacting Gemini API: {e}"
 
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     if anthropic_key:
@@ -191,7 +196,7 @@ class RealAITutorEngine:
                 context_text += f"[{c['file']} (Section {c['chunk_id']})]:\n{c['text']}\n\n"
 
         # Check for synchronized student notes from Obsidian
-        notes_text = self.sync.format_notes_for_prompt()
+        notes_text = self.sync.format_notes_for_prompt(subject=self.subject)
 
         # Format conversation history
         history_text = ""
@@ -213,6 +218,46 @@ class RealAITutorEngine:
         )
 
         return call_real_ai(full_ai_prompt)
+
+    def generate_opening_greeting(self) -> str:
+        """Generates an engaging, proactive opening message from the tutor to begin the session."""
+        try:
+            from .curriculum_planner import CurriculumPlanner
+        except ImportError:
+            from curriculum_planner import CurriculumPlanner
+
+        planner = CurriculumPlanner(subject=self.subject)
+        level = planner.boundary_level
+        active_idx = max(0, min(len(planner.modules) - 1, int(level) - 1))
+        curr_unit = planner.modules[active_idx][0]
+        curr_sub = planner.modules[active_idx][1]
+
+        materials = self.rag.scan_materials()
+        has_mat = self.subject in materials and len(materials[self.subject]) > 0
+
+        notes = self.sync.read_scratchpad_notes(subject=self.subject)
+        notes_prompt = ""
+        if notes:
+            notes_prompt = f"The student also noted these questions in Obsidian for this subject:\n" + "\n".join(f"- {n}" for n in notes)
+
+        prompt = (
+            f"You are the student's personal, accuracy-first tutor for {self.subject.capitalize()}.\n"
+            f"We are beginning an interactive study session.\n"
+            f"- Current Focus: {curr_unit} ({curr_sub})\n"
+            f"- Calibrated Frontier: Level {level:.2f}\n"
+            f"- Course Material: {'Grounded in course documents' if has_mat else 'Using core principles'}\n"
+            f"{notes_prompt}\n\n"
+            f"Instructions:\n"
+            f"1. Give a warm, concise opening greeting (2-3 sentences max).\n"
+            f"2. State clearly what concept we are working on today.\n"
+            f"3. If they left notes/questions, acknowledge them.\n"
+            f"4. Pose an engaging, open-ended question or practice prompt to begin our dialogue.\n"
+            f"Speak directly to the student as an expert instructor. Do not lecture on system rules."
+        )
+        try:
+            return call_real_ai(prompt)
+        except Exception:
+            return f"Welcome to your {self.subject.capitalize()} study session! Today we are working on {curr_unit} ({curr_sub}). To get started: what is your current understanding of this topic, or where would you like to begin?"
 
 class LocalOpenAIHandler(BaseHTTPRequestHandler):
     tutor: Optional[RealAITutorEngine] = None

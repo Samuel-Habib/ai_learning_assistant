@@ -16,8 +16,22 @@ class ObsidianNoteSync:
         self.md_dir = md_dir
         self.scratchpad_path = os.path.join(self.md_dir, "03_STUDENT_OBSIDIAN_SCRATCHPAD.md")
 
-    def read_scratchpad_notes(self) -> List[str]:
-        """Extracts student-written notes and questions from the scratchpad."""
+    def ensure_subject_section(self, subject: str) -> None:
+        """Ensures a section for the given subject exists in the scratchpad."""
+        if not os.path.exists(self.scratchpad_path):
+            return
+        clean_subj = subject.replace("_", " ").title()
+        try:
+            with open(self.scratchpad_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            if f"## 📌 {clean_subj}" not in content and f"## {clean_subj}" not in content:
+                with open(self.scratchpad_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n---\n\n## 📌 {clean_subj}\n\n*(Add your questions or notes for {clean_subj} below)*\n")
+        except Exception:
+            pass
+
+    def read_scratchpad_notes(self, subject: Optional[str] = None) -> List[str]:
+        """Extracts student-written notes and questions from the scratchpad, filtered by subject."""
         if not os.path.exists(self.scratchpad_path):
             return []
 
@@ -25,20 +39,27 @@ class ObsidianNoteSync:
             content = f.read()
 
         notes = []
-        in_scratch_area = False
+        clean_subj = subject.replace("_", " ").lower() if subject else None
+
+        current_section = ""
         for line in content.splitlines():
             line_str = line.strip()
-            if any(h in line_str for h in ["## 📌", "## Questions", "## My Notes"]):
-                in_scratch_area = True
+            if line_str.startswith("## ") or line_str.startswith("### "):
+                header = line_str.lstrip("#").strip().lower()
+                current_section = re.sub(r'^[^\w]+', '', header).strip()
                 continue
-            elif line_str.startswith("## ") and in_scratch_area:
-                in_scratch_area = False
 
-            if in_scratch_area:
-                if line_str.startswith("- ") and not line_str.startswith("- *("):
-                    clean = line_str[2:].strip()
-                    if clean:
+            if line_str.startswith("- ") and not line_str.startswith("- *("):
+                clean = line_str[2:].strip()
+                if not clean:
+                    continue
+
+                if clean_subj:
+                    # Match notes under this subject or general section
+                    if clean_subj in current_section or "general" in current_section:
                         notes.append(clean)
+                else:
+                    notes.append(clean)
 
         return notes
 
@@ -73,23 +94,32 @@ class ObsidianNoteSync:
                         results[rel_name] = file_notes
         return results
 
-    def format_notes_for_prompt(self) -> str:
+    def format_notes_for_prompt(self, subject: Optional[str] = None) -> str:
         """Formats discovered notes cleanly for the tutor."""
-        scratch_notes = self.read_scratchpad_notes()
+        scratch_notes = self.read_scratchpad_notes(subject=subject)
         module_notes = self.scan_all_module_notes()
 
-        if not scratch_notes and not module_notes:
+        # If subject is specified, filter module notes
+        relevant_module_notes = {}
+        clean_subj = subject.replace("_", " ").lower() if subject else None
+        if module_notes and clean_subj:
+            for mod, n_list in module_notes.items():
+                if mod != "03_STUDENT_OBSIDIAN_SCRATCHPAD.md" and clean_subj in mod.lower():
+                    relevant_module_notes[mod] = n_list
+        elif module_notes and not clean_subj:
+            relevant_module_notes = module_notes
+
+        if not scratch_notes and not relevant_module_notes:
             return ""
 
-        output = ["\nNotes from the student's Obsidian vault:"]
+        output = [f"\nNotes from the student's Obsidian vault ({subject.capitalize() if subject else 'General'}):"]
         if scratch_notes:
             for n in scratch_notes:
                 output.append(f"  • {n}")
-        if module_notes:
-            for mod, n_list in module_notes.items():
-                if mod != "03_STUDENT_OBSIDIAN_SCRATCHPAD.md":
-                    for n in n_list:
-                        output.append(f"  • [{mod}] {n}")
+        if relevant_module_notes:
+            for mod, n_list in relevant_module_notes.items():
+                for n in n_list:
+                    output.append(f"  • [{mod}] {n}")
 
         output.append("Address these questions and reflections naturally in your lesson.\n")
         return "\n".join(output)
