@@ -1,16 +1,16 @@
-# 🧭 Linea_algebra: Study Hub & Dashboard
+# 🧭 Linear_algebra: Study Hub & Dashboard
 
 Welcome to your study dashboard. This space organizes your syllabus, visual concept maps, and interactive practice exercises.
 
 ---
 
 ## 📊 Topic Progress
-- **Subject:** Linea_algebra
-- **Calibrated Frontier:** Level 0.65
+- **Subject:** Linear_algebra
+- **Calibrated Frontier:** Level 1.50
 
 ```
-1. Foundations of Linea_algebr   [█████████████░░░░░░░] Current Focus
-2. Primary Mechanics of Linea_   [░░░░░░░░░░░░░░░░░░░░] Next Up
+1. Foundations of Linear_algeb   [██████████░░░░░░░░░░] Current Focus
+2. Primary Mechanics of Linear   [░░░░░░░░░░░░░░░░░░░░] Next Up
 3. Core Procedural Methods       [░░░░░░░░░░░░░░░░░░░░] Queued
 4. Nuances & Edge Cases          [░░░░░░░░░░░░░░░░░░░░] Queued
 5. Advanced Theory & Synthesis   [░░░░░░░░░░░░░░░░░░░░] Queued
@@ -27,8 +27,8 @@ flowchart TD
     classDef current fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#fff;
     classDef upcoming fill:#37474f,stroke:#263238,stroke-width:1px,color:#cfd8dc;
 
-    M1["1. Foundations of Linea_algebra<br/><i>Core Terminology & Axioms</i>"]:::current
-    M2["2. Primary Mechanics of Linea_algebra<br/><i>Standard Rules & Direct Applications</i>"]:::upcoming
+    M1["1. Foundations of Linear_algebra<br/><i>Core Terminology & Axioms</i>"]:::current
+    M2["2. Primary Mechanics of Linear_algebra<br/><i>Standard Rules & Direct Applications</i>"]:::upcoming
     M3["3. Core Procedural Methods<br/><i>Multi-step Reasoning & Problem Solving</i>"]:::upcoming
     M4["4. Nuances & Edge Cases<br/><i>Subtle Distinctions & Misconceptions</i>"]:::upcoming
     M5["5. Advanced Theory & Synthesis<br/><i>Complex Integration & Systemic Analysis</i>"]:::upcoming

@@ -18,6 +18,11 @@ except ImportError:
     from rag_manager import MaterialRAGManager
     from ai_tutor import call_real_ai
 
+try:
+    from .ui import Spinner, style_text, Style
+except ImportError:
+    from ui import Spinner, style_text, Style
+
 MD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "md"))
 
 @dataclass
@@ -342,10 +347,11 @@ This document records your initial placement check and tracks the concepts you h
 
     def run_interactive_assessment(self, mock_inputs: Optional[List[str]] = None) -> float:
         """Runs placement check from foundational concepts to pinpoint the student's learning edge."""
-        print("\n" + "-" * 65)
-        print(f"  Placement Assessment: Finding Your Starting Point ({self.subject.capitalize()})")
-        print("  Answer each question as accurately as you can.")
-        print("-" * 65 + "\n")
+        border = style_text("─" * 65, Style.BRIGHT_CYAN)
+        print(f"\n{border}")
+        print(style_text(f"  📋 Placement Assessment: {self.subject.replace('_',' ').title()}", Style.BOLD, Style.WHITE))
+        print(style_text("  Answer each question as accurately as you can to discover your frontier.", Style.DIM))
+        print(f"{border}\n")
 
         input_idx = 0
         breakdown_detected = False
@@ -353,8 +359,11 @@ This document records your initial placement check and tracks the concepts you h
         failed_probe = None
 
         for idx, probe in enumerate(self.probe_bank, 1):
-            print(f"Question {idx} (Level {probe.level:.1f} - {probe.topic}):")
-            print(f"{probe.question}")
+            q_num = style_text(f"Question {idx}", Style.BOLD, Style.BRIGHT_CYAN)
+            q_level = style_text(f"Level {probe.level:.1f}", Style.DIM)
+            q_topic = style_text(probe.topic, Style.BOLD)
+            print(f"{q_num} ({q_level} · {q_topic}):")
+            print(f"  {probe.question}")
 
             if mock_inputs and input_idx < len(mock_inputs):
                 ans = mock_inputs[input_idx]
@@ -362,76 +371,83 @@ This document records your initial placement check and tracks the concepts you h
                 print(f"\nYour answer: {ans}")
             else:
                 try:
-                    ans = input("\nYour answer: ").strip()
+                    ans = input(style_text("\nYour answer: ", Style.BOLD, Style.BRIGHT_BLUE)).strip()
                 except (EOFError, KeyboardInterrupt):
                     ans = "skip"
 
-            result = self.evaluate_response(probe, ans)
+            with Spinner("Evaluating your reasoning..."):
+                result = self.evaluate_response(probe, ans)
             self.results.append(result)
 
             if result.passed:
-                print(f"✓ Correct.\n")
+                print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
             else:
-                print(f"Note: {result.reasoning_analysis}\n")
+                print(style_text(f"Note: {result.reasoning_analysis}\n", Style.YELLOW))
                 breakdown_detected = True
                 breakdown_level = probe.level
                 failed_probe = probe
                 break
 
         if breakdown_detected and failed_probe:
-            osc_down, osc_target = self.generate_oscillation_probes(failed_probe)
+            with Spinner("Formulating follow-up probes around your learning boundary..."):
+                osc_down, osc_target = self.generate_oscillation_probes(failed_probe)
 
             # Check prerequisite
-            print(f"Follow-up 1 (Prerequisite Check):\n{osc_down.question}")
+            print(style_text(f"\nFollow-up 1 (Prerequisite Check · {osc_down.topic}):", Style.BOLD, Style.BRIGHT_CYAN))
+            print(f"  {osc_down.question}")
             if mock_inputs and input_idx < len(mock_inputs):
                 ans_down = mock_inputs[input_idx]
                 input_idx += 1
                 print(f"\nYour answer: {ans_down}")
             else:
                 try:
-                    ans_down = input("\nYour answer: ").strip()
+                    ans_down = input(style_text("\nYour answer: ", Style.BOLD, Style.BRIGHT_BLUE)).strip()
                 except (EOFError, KeyboardInterrupt):
                     ans_down = "skip"
 
-            res_down = self.evaluate_response(osc_down, ans_down)
+            with Spinner("Evaluating prerequisite reasoning..."):
+                res_down = self.evaluate_response(osc_down, ans_down)
             self.results.append(res_down)
             if res_down.passed:
-                print(f"✓ Correct.\n")
+                print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
             else:
-                print(f"Note: {res_down.reasoning_analysis}\n")
+                print(style_text(f"Note: {res_down.reasoning_analysis}\n", Style.YELLOW))
 
             # Check target nuance
-            print(f"Follow-up 2 (Nuance Discrimination):\n{osc_target.question}")
+            print(style_text(f"\nFollow-up 2 (Nuance Discrimination · {osc_target.topic}):", Style.BOLD, Style.BRIGHT_CYAN))
+            print(f"  {osc_target.question}")
             if mock_inputs and input_idx < len(mock_inputs):
                 ans_target = mock_inputs[input_idx]
                 input_idx += 1
                 print(f"\nYour answer: {ans_target}")
             else:
                 try:
-                    ans_target = input("\nYour answer: ").strip()
+                    ans_target = input(style_text("\nYour answer: ", Style.BOLD, Style.BRIGHT_BLUE)).strip()
                 except (EOFError, KeyboardInterrupt):
                     ans_target = "skip"
 
-            res_target = self.evaluate_response(osc_target, ans_target)
+            with Spinner("Evaluating nuance discrimination..."):
+                res_target = self.evaluate_response(osc_target, ans_target)
             self.results.append(res_target)
             if res_target.passed:
-                print(f"✓ Correct.\n")
+                print(style_text("✓ Correct.\n", Style.BOLD, Style.GREEN))
                 self.pinpointed_boundary = round(breakdown_level - 0.1, 2)
                 self.boundary_description = f"Practice on {failed_probe.topic}"
             else:
-                print(f"Note: {res_target.reasoning_analysis}\n")
+                print(style_text(f"Note: {res_target.reasoning_analysis}\n", Style.YELLOW))
                 self.pinpointed_boundary = round(max(0.5, breakdown_level - 0.35), 2)
                 self.boundary_description = f"Core foundations of {failed_probe.topic}"
         else:
             self.pinpointed_boundary = 5.0
             self.boundary_description = f"Advanced mastery of {self.subject.capitalize()}"
 
-        print("-" * 65)
-        print("Assessment Complete!")
-        print(f"Subject: {self.subject.capitalize()}")
-        print(f"Recommended Starting Point: Level {self.pinpointed_boundary:.2f} — {self.boundary_description}")
-        print("Your study notes and roadmap in Obsidian (learn/md/) are updated.")
-        print("-" * 65 + "\n")
+        print(f"\n{border}")
+        print(style_text("  🎉 Assessment Complete!", Style.BOLD, Style.GREEN))
+        print(style_text(f"  Subject: {self.subject.replace('_',' ').title()}", Style.WHITE))
+        level_str = style_text(f"Level {self.pinpointed_boundary:.2f}", Style.BOLD, Style.BRIGHT_CYAN)
+        print(f"  Recommended Starting Point: {level_str} — {self.boundary_description}")
+        print(style_text("  Your study notes and roadmap in Obsidian (learn/md/) are updated.", Style.DIM))
+        print(f"{border}\n")
 
         self.log_calibration_to_obsidian()
         return self.pinpointed_boundary

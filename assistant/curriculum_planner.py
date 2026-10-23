@@ -16,6 +16,19 @@ except ImportError:
     from rag_manager import MaterialRAGManager
     from ai_tutor import call_real_ai
 
+try:
+    from .ui import style_text, Style
+except ImportError:
+    try:
+        from ui import style_text, Style
+    except ImportError:
+        # Graceful fallback if ui module isn't available
+        def style_text(text, *s): return text
+        class Style:
+            RESET = BOLD = DIM = ITALIC = UNDERLINE = ""
+            GREEN = YELLOW = CYAN = WHITE = RED = BLUE = MAGENTA = ""
+            BRIGHT_GREEN = BRIGHT_YELLOW = BRIGHT_BLUE = BRIGHT_CYAN = ""
+
 MD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "md"))
 
 class CurriculumPlanner:
@@ -158,34 +171,64 @@ Respond strictly in valid JSON format:
     def print_terminal_roadmap(self) -> None:
         """Prints a clean, formatted study plan directly to stdout."""
         active_idx = max(0, min(len(self.modules) - 1, int(self.boundary_level) - 1))
-        print("\n" + "=" * 65)
-        print(f"  Curriculum Study Plan: {self.subject.capitalize()} (Frontier: Level {self.boundary_level:.2f})")
-        print("=" * 65)
 
-        print("\nTopic Progress:")
-        print(self.generate_progress_gauge().strip("`").strip("\n"))
+        border = style_text("━" * 65, Style.BRIGHT_CYAN)
+        subj_title = self.subject.replace("_", " ").title()
+        level_str = style_text(f"Level {self.boundary_level:.2f}", Style.BOLD, Style.BRIGHT_CYAN)
 
-        print("\nLearning Units Sequence:")
+        print(f"\n{border}")
+        print(style_text(f"  📊 Study Plan: {subj_title}", Style.BOLD, Style.WHITE) + f"  (Frontier: {level_str})")
+        print(f"{border}\n")
+
+        print(style_text("  Topic Progress:", Style.BOLD))
+        for i, (title, _) in enumerate(self.modules):
+            short_title = title[:30].ljust(32)
+            if i < active_idx:
+                bar_fill = style_text("████████████████████", Style.GREEN)
+                label = style_text("Mastered", Style.GREEN)
+                print(f"  {short_title} [{bar_fill}] {label}")
+            elif i == active_idx:
+                pct = int((self.boundary_level % 1.0) * 20) if self.boundary_level % 1.0 > 0 else 10
+                filled = style_text("█" * pct, Style.BRIGHT_CYAN)
+                empty = style_text("░" * (20 - pct), Style.DIM)
+                label = style_text("Current Focus", Style.BOLD, Style.BRIGHT_CYAN)
+                print(f"  {short_title} [{filled}{empty}] {label}")
+            elif i == active_idx + 1:
+                empty = style_text("░" * 20, Style.DIM)
+                label = style_text("Next Up", Style.YELLOW)
+                print(f"  {short_title} [{empty}] {label}")
+            else:
+                empty = style_text("░" * 20, Style.DIM)
+                label = style_text("Queued", Style.DIM)
+                print(f"  {short_title} [{empty}] {label}")
+
+        print(style_text("\n  Learning Path:", Style.BOLD))
         for i, (title, subtitle) in enumerate(self.modules):
             if i < active_idx:
-                status = "✓ [Mastered]"
-                marker = "  "
+                icon = style_text("  ✓", Style.GREEN)
+                name = style_text(title, Style.DIM)
+                tag = style_text("[Mastered]", Style.DIM, Style.GREEN)
             elif i == active_idx:
-                status = "👉 [Current Focus]"
-                marker = "► "
+                icon = style_text("  ►", Style.BOLD, Style.BRIGHT_CYAN)
+                name = style_text(title, Style.BOLD, Style.WHITE)
+                tag = style_text("👉 [Current Focus]", Style.BOLD, Style.BRIGHT_CYAN)
             elif i == active_idx + 1:
-                status = "⏳ [Next Up]"
-                marker = "  "
+                icon = style_text("  ○", Style.YELLOW)
+                name = title
+                tag = style_text("⏳ [Next Up]", Style.YELLOW)
             else:
-                status = "· [Queued]"
-                marker = "  "
-            print(f"{marker}{title} {status}")
+                icon = style_text("  ·", Style.DIM)
+                name = style_text(title, Style.DIM)
+                tag = style_text("[Queued]", Style.DIM)
+            print(f"{icon} {name} {tag}")
             if subtitle:
-                print(f"     └─ {subtitle}")
-        print("\n" + "-" * 65)
+                print(style_text(f"       └─ {subtitle}", Style.DIM))
+
         curr_title = self.modules[active_idx][0]
-        print(f"Next Step: Run './learn chat {self.subject}' to begin practicing {curr_title}.")
-        print("=" * 65 + "\n")
+        print(f"\n{border}")
+        tip = style_text(f"./learn chat {self.subject}", Style.BOLD, Style.BRIGHT_CYAN)
+        print(f"  💡 Next Step: Run {tip} to begin practicing {curr_title}.")
+        print(f"{border}\n")
 
     def update_dashboard(self) -> None:
         """Updates the master dashboard in 00_INDEX_DASHBOARD.md."""

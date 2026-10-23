@@ -7,17 +7,17 @@ Handles document attachments (-f), Obsidian note sync, and zero-friction student
 import os
 import sys
 import subprocess
-import threading
-import time
 
 try:
     from .rag_manager import MaterialRAGManager
     from .obsidian_sync import ObsidianNoteSync
     from .ai_tutor import RealAITutorEngine, start_ai_server
+    from .ui import Spinner, print_tutor_header, print_tutor_message, prompt_user, style_text, Style
 except ImportError:
     from rag_manager import MaterialRAGManager
     from obsidian_sync import ObsidianNoteSync
     from ai_tutor import RealAITutorEngine, start_ai_server
+    from ui import Spinner, print_tutor_header, print_tutor_message, prompt_user, style_text, Style
 
 AICHAT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".aichat"))
 MATERIAL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "material"))
@@ -56,66 +56,67 @@ class TerminalChatRunner:
 
     def run_direct_repl(self):
         """Native interactive tutor dialogue with full RAG and Obsidian sync."""
-        print("\n" + "=" * 65)
-        print(f"  Interactive Study Session: {self.subject.capitalize()} Tutor")
-        print("  Type your questions or answers below. Type 'exit' to return to menu.")
-        print("=" * 65)
+
+        # Determine current curriculum unit and frontier level
+        try:
+            from .curriculum_planner import CurriculumPlanner
+        except ImportError:
+            from curriculum_planner import CurriculumPlanner
+        planner = CurriculumPlanner(subject=self.subject)
+        active_idx = max(0, min(len(planner.modules) - 1, int(planner.boundary_level) - 1))
+        curr_unit = planner.modules[active_idx][0]
+        print_tutor_header(self.subject, curr_unit, planner.boundary_level)
 
         # Sync & display student Obsidian notes for this subject
         notes = self.sync.read_scratchpad_notes(subject=self.subject)
         if notes:
-            print(f"\nNotes from your Obsidian scratchpad ({self.subject.capitalize()}):")
+            print(style_text(f"  📝 Your {self.subject.replace('_',' ').title()} notes:", Style.DIM))
             for n in notes:
-                print(f"  • {n}")
+                print(style_text(f"     • {n}", Style.DIM))
+            print()
 
         # Check course material status
         mats = self.rag_mgr.scan_materials()
         file_count = len(mats.get(self.subject, []))
         if file_count > 0:
-            print(f"\nCourse Material: {file_count} document(s) indexed from material/{self.subject}/")
+            print(style_text(f"  📚 Course Material: {file_count} document(s) indexed from material/{self.subject}/", Style.DIM))
         else:
-            print(f"\nCourse Material: General {self.subject.capitalize()} knowledge (drop PDFs in material/{self.subject}/ anytime)")
+            print(style_text(f"  📚 Course Material: General {self.subject.replace('_',' ').title()} knowledge (drop PDFs in material/{self.subject}/ anytime)", Style.DIM))
 
-        print("-" * 65 + "\n")
+        print()
 
         engine = RealAITutorEngine(subject=self.subject)
         history = []
 
         # Tutor initiates dialogue proactively
-        print("Tutor is preparing your session...", end="", flush=True)
         try:
-            greeting = engine.generate_opening_greeting()
-            print("\r" + " " * 45 + "\r", end="", flush=True)
-            print("Tutor > " + greeting + "\n")
+            with Spinner("Your tutor is preparing the session..."):
+                greeting = engine.generate_opening_greeting()
+            print_tutor_message(greeting)
             history.append({"role": "assistant", "content": greeting})
-        except Exception as e:
-            print("\r" + " " * 45 + "\r", end="", flush=True)
-            default_greeting = f"Welcome to your {self.subject.capitalize()} study session! How would you describe your current goals or questions in this subject?"
-            print("Tutor > " + default_greeting + "\n")
+        except Exception:
+            default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! How would you describe your current goals or questions in this subject?"
+            print_tutor_message(default_greeting)
             history.append({"role": "assistant", "content": default_greeting})
 
         while True:
-            try:
-                user_msg = input("You > ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print("\n\nSession paused. Your notes are saved in learn/md/.")
-                break
+            user_msg = prompt_user()
 
             if not user_msg:
                 continue
 
             if user_msg.lower() in ["exit", "quit", "menu", "q", ":q"]:
-                print("\nReturning to menu...")
+                print(style_text("\n✨ Session paused. Your notes are saved in learn/md/.", Style.DIM, Style.GREEN))
                 break
 
-            print("\nTutor > ", end="", flush=True)
             try:
-                response = engine.formulate_response(user_msg, history=history)
-                print(response + "\n")
+                with Spinner("Thinking..."):
+                    response = engine.formulate_response(user_msg, history=history)
+                print_tutor_message(response)
                 history.append({"role": "user", "content": user_msg})
                 history.append({"role": "assistant", "content": response})
             except Exception as e:
-                print(f"Error: {e}\n")
+                print(style_text(f"\n⚠ Error: {e}", Style.RED))
 
 if __name__ == "__main__":
     runner = TerminalChatRunner()

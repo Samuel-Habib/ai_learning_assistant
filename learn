@@ -33,20 +33,17 @@ from assistant.obsidian_sync import ObsidianNoteSync
 from assistant.rag_manager import MaterialRAGManager
 from assistant.terminal_chat import TerminalChatRunner
 from assistant.ai_tutor import get_ai_status, call_real_ai
+from assistant.ui import Spinner, style_text, Style
 
 def print_header():
     ai_ok, ai_desc = get_ai_status()
+    border = style_text("━" * 60, Style.BRIGHT_CYAN)
+    title = style_text("  📘 Personalized Study Assistant", Style.BOLD, Style.WHITE)
     if ai_ok:
-        engine_line = f"  ⚡ AI Engine: Active ({ai_desc})"
+        engine = style_text(f"  ⚡ AI Engine: {ai_desc}", Style.GREEN)
     else:
-        engine_line = f"  ⚠️  AI Engine: {ai_desc}\n  👉 Set GEMINI_API_KEY in .env for dynamic AI generation"
-    
-    print(f"""
-======================================================================
-  Personalized Study Assistant
-{engine_line}
-======================================================================
-    """.strip("\n"))
+        engine = style_text(f"  ⚠️  AI Engine: {ai_desc}", Style.YELLOW) + "\n" + style_text("  👉 Set GEMINI_API_KEY in .env for dynamic AI", Style.DIM)
+    print(f"\n{border}\n{title}\n{engine}\n{border}")
 
 def resolve_subject(explicit_subject: Optional[str] = None) -> str:
     """
@@ -137,16 +134,19 @@ def cmd_status(subject: Optional[str] = None):
 
 def cmd_probe(subject: Optional[str] = None):
     subj = resolve_subject(subject)
-    search = KnowledgeBoundarySearch(subject=subj)
+    with Spinner(f"Generating diagnostic questions for {subj.replace('_',' ').title()}..."):
+        search = KnowledgeBoundarySearch(subject=subj)
     boundary = search.run_interactive_assessment()
-    planner = CurriculumPlanner(subject=subj, boundary_level=boundary)
-    planner.update_dashboard()
+    with Spinner("Building your study plan..."):
+        planner = CurriculumPlanner(subject=subj, boundary_level=boundary)
+        planner.update_dashboard()
     planner.print_terminal_roadmap()
 
 def cmd_roadmap(subject: Optional[str] = None):
     subj = resolve_subject(subject)
-    planner = CurriculumPlanner(subject=subj)
-    planner.update_dashboard()
+    with Spinner(f"Building roadmap for {subj.replace('_',' ').title()}..."):
+        planner = CurriculumPlanner(subject=subj)
+        planner.update_dashboard()
     planner.print_terminal_roadmap()
 
 def cmd_sync():
@@ -166,8 +166,9 @@ def cmd_sync():
 
 def cmd_ingest():
     rag = MaterialRAGManager()
-    chunks = rag.build_index()
-    print(f"\nCourse materials refreshed successfully ({chunks} sections indexed).")
+    with Spinner("Indexing course materials..."):
+        chunks = rag.build_index()
+    print(style_text(f"\n  ✓ Course materials refreshed successfully ({chunks} sections indexed).", Style.GREEN))
 
 def cmd_chat(subject: Optional[str] = None):
     subj = resolve_subject(subject)
@@ -183,15 +184,12 @@ def cmd_doctor():
     ai_ok, ai_desc = get_ai_status()
     if ai_ok:
         print(f"  [✓] AI Engine: Connected via {ai_desc}")
-        print("      Testing live model ping... ", end="", flush=True)
-        try:
+        with Spinner("Testing live model connection..."):
             res = call_real_ai("Respond with the exact word 'PONG'")
-            if "pong" in res.lower():
-                print("OK! (Dynamic AI intelligence active)")
-            else:
-                print(f"Response received ({res[:40]}...)")
-        except Exception as e:
-            print(f"Warning ({e})")
+        if "pong" in res.lower():
+            print(style_text("  ✓ Live AI ping: OK", Style.GREEN))
+        else:
+            print(f"  Response received ({res[:40]}...)")
     else:
         print("  [!] AI Engine: Offline Mode")
         print("      No API key was detected in your environment or .env file.")
@@ -227,19 +225,20 @@ def cmd_doctor():
 def interactive_menu():
     while True:
         print_header()
-        print("\nChoose an option:")
-        print("  1. Placement Check (Find where to start)")
-        print("  2. Start Study Session (Terminal chat)")
-        print("  3. View Study Progress & Topics")
-        print("  4. View My Notes & Questions")
-        print("  5. Refresh Course Materials")
-        print("  6. System Health & AI Diagnostic Check")
-        print("  7. Exit")
+
+        print()
+        print(style_text("  1", Style.BOLD, Style.BRIGHT_CYAN) + "  📋 Placement Check " + style_text("(find where to start)", Style.DIM))
+        print(style_text("  2", Style.BOLD, Style.BRIGHT_CYAN) + "  💬 Study Session " + style_text("(interactive terminal chat)", Style.DIM))
+        print(style_text("  3", Style.BOLD, Style.BRIGHT_CYAN) + "  📊 View Progress & Roadmap")
+        print(style_text("  4", Style.BOLD, Style.BRIGHT_CYAN) + "  📝 View My Notes")
+        print(style_text("  5", Style.BOLD, Style.BRIGHT_CYAN) + "  📚 Refresh Course Materials")
+        print(style_text("  6", Style.BOLD, Style.BRIGHT_CYAN) + "  🩺 System Health Check")
+        print(style_text("  7", Style.BOLD, Style.BRIGHT_CYAN) + "  🚪 Exit")
 
         try:
-            choice = input("\nSelect [1-7]: ").strip()
+            choice = input(style_text("\n  ▸ Select [1-7]: ", Style.BOLD)).strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nGoodbye!")
+            print(style_text("\n  👋 Happy studying! See you next time.\n", Style.DIM, Style.CYAN))
             break
 
         if choice == "1":
@@ -261,7 +260,7 @@ def interactive_menu():
             cmd_doctor()
             input("\nPress Enter to return to menu...")
         elif choice in ["7", "q", "exit"]:
-            print("\nGoodbye!")
+            print(style_text("\n  👋 Happy studying! See you next time.\n", Style.DIM, Style.CYAN))
             break
         else:
             print("Please select 1-7.")
