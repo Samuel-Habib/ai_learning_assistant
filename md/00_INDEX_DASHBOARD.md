@@ -4,8 +4,12 @@ Welcome to your central learning vault. Track your multi-subject progress, view 
 
 ---
 
-## 📊 Enrolled Subjects (3)
+## 📊 Enrolled Subjects (4)
 
+### 📚 [[subjects/ble/00_DASHBOARD|BLE]]
+- **Progress:** `[█░░░░░░░░░░░░░░] 13% (Level 0.65)`
+- **Current Focus:** 1. Physical & Packet Foundations
+- **Direct Links:** [[subjects/ble/01_ROADMAP|Roadmap]] · [[subjects/ble/02_DIAGNOSTICS|Placement History]] · [[subjects/ble/lessons/01_physical_packet_foundations|📖 Current Lesson]]
 ### 📚 [[subjects/usb/00_DASHBOARD|USB]]
 - **Progress:** `[█░░░░░░░░░░░░░░] 13% (Level 0.65)`
 - **Current Focus:** 1. USB Fundamentals & Terminology

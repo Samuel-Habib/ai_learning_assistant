@@ -1,4 +1,4 @@
-# 🗺️ USB: Study Roadmap & Learning Units
+# 🗺️ BLE: Study Roadmap & Learning Units
 
 A structured progression from foundational axioms to independent problem solving.
 
@@ -12,12 +12,12 @@ flowchart TD
     classDef current fill:#f57c00,stroke:#e65100,stroke-width:3px,color:#fff;
     classDef upcoming fill:#37474f,stroke:#263238,stroke-width:1px,color:#cfd8dc;
 
-    M1["1. USB Fundamentals & Terminology<br/><i>Essential definitions, topology, and physical signals</i>"]:::current
-    M2["2. Architectural Overview & Physical Layer<br/><i>Hardware design, PHYs, and electrical signaling</i>"]:::upcoming
-    M3["3. USB Data Flow Model<br/><i>Endpoints, pipes, transfer types, and bus scheduling</i>"]:::upcoming
-    M4["4. USB Device Framework<br/><i>Standard descriptors, enumeration process, and device states</i>"]:::upcoming
-    M5["5. Host Hardware & Software Architecture<br/><i>Host controller operation and driver stacks</i>"]:::upcoming
-    M6["6. Practical Debugging & Protocol Analysis<br/><i>Wireshark/USB analyzer decoding and packet validation</i>"]:::upcoming
+    M1["1. Physical & Packet Foundations<br/><i>Test packet structure, access address formatting, and basic transmission concepts</i>"]:::current
+    M2["2. Advertising & Device Discovery<br/><i>Advertising packet types (ADV_IND, ADV_DIRECT_IND, ADV_NONCONN_IND) and active scanning</i>"]:::upcoming
+    M3["3. Link Layer & Connection Management<br/><i>State machine, connection establishment, master management, robustness, and low-power optimizations</i>"]:::upcoming
+    M4["4. L2CAP & Signaling Channels<br/><i>Connectionless models, channel multiplexing, and connection parameter update commands</i>"]:::upcoming
+    M5["5. Attribute Protocol (ATT) & Database<br/><i>Attribute database structure, handle discovery, permissions, and atomic operations</i>"]:::upcoming
+    M6["6. GATT Services & Security Architecture<br/><i>Service-oriented abstraction, peripheral exposure, and AES/CSRK-based connection security</i>"]:::upcoming
 
     M1 ==>|Current Frontier| M2
     M2 --> M3
@@ -30,19 +30,19 @@ flowchart TD
 
 ## ✅ Learning Unit Checklists
 
-- [ ] [[lessons/01_usb_fundamentals_terminology|**1. USB Fundamentals & Terminology**]] 👉 **(Current Focus)**
-  - *Concepts:* Essential definitions, topology, and physical signals
-- [ ] [[lessons/02_architectural_overview_physical_layer|**2. Architectural Overview & Physical Layer**]] *(Upcoming)*
-  - *Concepts:* Hardware design, PHYs, and electrical signaling
-- [ ] [[lessons/03_usb_data_flow_model|**3. USB Data Flow Model**]] *(Upcoming)*
-  - *Concepts:* Endpoints, pipes, transfer types, and bus scheduling
-- [ ] [[lessons/04_usb_device_framework|**4. USB Device Framework**]] *(Upcoming)*
-  - *Concepts:* Standard descriptors, enumeration process, and device states
-- [ ] [[lessons/05_host_hardware_software_architecture|**5. Host Hardware & Software Architecture**]] *(Upcoming)*
-  - *Concepts:* Host controller operation and driver stacks
-- [ ] [[lessons/06_practical_debugging_protocol_analysis|**6. Practical Debugging & Protocol Analysis**]] *(Upcoming)*
-  - *Concepts:* Wireshark/USB analyzer decoding and packet validation
+- [ ] [[lessons/01_physical_packet_foundations|**1. Physical & Packet Foundations**]] 👉 **(Current Focus)**
+  - *Concepts:* Test packet structure, access address formatting, and basic transmission concepts
+- [ ] [[lessons/02_advertising_device_discovery|**2. Advertising & Device Discovery**]] *(Upcoming)*
+  - *Concepts:* Advertising packet types (ADV_IND, ADV_DIRECT_IND, ADV_NONCONN_IND) and active scanning
+- [ ] [[lessons/03_link_layer_connection_management|**3. Link Layer & Connection Management**]] *(Upcoming)*
+  - *Concepts:* State machine, connection establishment, master management, robustness, and low-power optimizations
+- [ ] [[lessons/04_l2cap_signaling_channels|**4. L2CAP & Signaling Channels**]] *(Upcoming)*
+  - *Concepts:* Connectionless models, channel multiplexing, and connection parameter update commands
+- [ ] [[lessons/05_attribute_protocol_att_database|**5. Attribute Protocol (ATT) & Database**]] *(Upcoming)*
+  - *Concepts:* Attribute database structure, handle discovery, permissions, and atomic operations
+- [ ] [[lessons/06_gatt_services_security_architecture|**6. GATT Services & Security Architecture**]] *(Upcoming)*
+  - *Concepts:* Service-oriented abstraction, peripheral exposure, and AES/CSRK-based connection security
 
 ---
 
-- [[00_DASHBOARD|← Back to USB Hub]] | [[../../00_INDEX_DASHBOARD|Master Hub]]
+- [[00_DASHBOARD|← Back to BLE Hub]] | [[../../00_INDEX_DASHBOARD|Master Hub]]

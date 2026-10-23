@@ -221,20 +221,24 @@ class RealAITutorEngine:
             f"{context_text}\n"
             f"{notes_text}\n"
             f"{history_text}\n\n"
-            f"Student Question / Message:\n{user_query}\n\n"
-            f"Teaching Directive:\n"
-            f"- Prioritize clear conceptual explanations, physical mechanisms, and architectural intuition first.\n"
-            f"- Structure lessons cleanly with bold section headings (e.g. '◆ 1. Concept Name'), comparisons, and ASCII diagrams for circuits/signals/data flow.\n"
-            f"- Anchor and contrast new concepts with familiar baselines (e.g. UART, I2C, SPI, CAN in embedded systems, or standard fundamentals).\n"
-            f"- Pose an application check or design trade-off scenario ONLY AFTER explaining the underlying mechanisms.\n"
-            f"- If the student is unsure, confused, or asks to start from the beginning, immediately deliver the core ground truth clearly without making them guess in the dark.\n\n"
-            f"Your Response (speak directly as a world-class instructor):"
+            f"Student Message:\n{user_query}\n\n"
+            f"CRITICAL TERMINAL CONVERSATION RULES (STRICTLY ENFORCED):\n"
+            f"1. NO WALLS OF TEXT IN THE TERMINAL. All long-form text, textbook explanations, and ASCII diagrams belong in Obsidian (learn/md/subjects/{self.subject}/lessons/).\n"
+            f"2. Keep your terminal response lean, concise, and focused (1 to 2 short paragraphs, max 3-5 sentences total).\n"
+            f"3. When the student answers a question:\n"
+            f"   - Give immediate, concise feedback (1-2 sentences stating if they are correct and the core technical reason).\n"
+            f"   - Immediately ask the NEXT focused question to test their understanding.\n"
+            f"4. When the student asks a specific technical question:\n"
+            f"   - Answer it directly, clearly, and concisely in 2-3 sentences.\n"
+            f"   - If they need diagrams or deep context, tell them to check the relevant section in their Obsidian lesson document.\n"
+            f"5. Maintain a sharp, engaging back-and-forth rhythm. Never lecture.\n\n"
+            f"Your Response:"
         )
 
         return call_real_ai(full_ai_prompt)
 
     def generate_opening_greeting(self) -> str:
-        """Generates an engaging, proactive opening message from the tutor to begin the session."""
+        """Generates an engaging, lean opening message with ONE focused question (NO walls of text)."""
         try:
             from .curriculum_planner import CurriculumPlanner
         except ImportError:
@@ -246,39 +250,31 @@ class RealAITutorEngine:
         curr_unit = planner.modules[active_idx][0]
         curr_sub = planner.modules[active_idx][1]
 
-        materials = self.rag.scan_materials()
-        has_mat = self.subject in materials and len(materials[self.subject]) > 0
-
         notes = self.sync.read_scratchpad_notes(subject=self.subject)
         notes_prompt = ""
         if notes:
             notes_prompt = f"The student also noted these questions in Obsidian for this subject:\n" + "\n".join(f"- {n}" for n in notes)
 
         prompt = (
-            f"You are the student's personal, accuracy-first tutor for {self.subject.capitalize()}.\n"
-            f"We are beginning an interactive study session.\n"
-            f"- Current Focus: {curr_unit} ({curr_sub})\n"
-            f"- Calibrated Knowledge Frontier: Level {level:.2f}\n"
-            f"- Course Material: {'Grounded in course documents' if has_mat else 'Using authoritative domain principles'}\n"
+            f"You are the student's personal tutor for {self.subject.capitalize()}.\n"
+            f"We are beginning an interactive terminal study session.\n"
+            f"- Current Focus Unit: {curr_unit} ({curr_sub})\n"
+            f"- Obsidian Lesson Document: learn/md/subjects/{self.subject}/lessons/\n"
+            f"- Calibrated Level: Level {level:.2f}\n"
             f"{notes_prompt}\n\n"
-            f"CRITICAL PEDAGOGICAL DIRECTIVE:\n"
-            f"The initial placement check has already established the student's level. DO NOT COLD-QUIZ.\n"
-            f"Do NOT ask trivia questions or test questions about things they have not been taught yet.\n\n"
-            f"Your Instructions:\n"
-            f"1. Warm, encouraging welcome to the session for {self.subject.capitalize()}.\n"
-            f"2. State the active unit we are mastering: {curr_unit} — {curr_sub}.\n"
-            f"3. If the student noted questions in their Obsidian scratchpad, address them directly.\n"
-            f"4. TEACH FIRST (2-3 clear, insightful paragraphs):\n"
-            f"   - Explain the core physical/system mechanisms of this topic clearly.\n"
-            f"   - Contrast with familiar foundational baselines (e.g. UART, I2C, SPI, CAN in embedded/hardware, or standard intuitive baselines).\n"
-            f"   - Explain WHY the system was designed this way, with a concise text/ASCII diagram or structured model if appropriate.\n"
-            f"5. Conclude by inviting them to reflect on this foundational mechanism or ask where they'd like to dive in deeper.\n"
-            f"Speak directly, with high clarity and technical depth. Never make the student guess in the dark."
+            f"CRITICAL RULE: NO WALLS OF TEXT. Keep your entire reply under 4-5 sentences total.\n"
+            f"The full textbook lesson and diagrams are already saved in Obsidian for them to read.\n\n"
+            f"Instructions for Opening Message:\n"
+            f"1. Quick 1-sentence welcome stating today's focus ({curr_unit}).\n"
+            f"2. Mention they can refer to the full lesson note in Obsidian (`learn/md/subjects/{self.subject}/lessons/`) anytime for full diagrams and reference.\n"
+            f"3. If they wrote questions in Obsidian, address it in 1 sentence.\n"
+            f"4. Ask ONE focused, conceptual question on this unit to start the dialogue.\n"
+            f"Do NOT lecture. Do NOT dump diagrams or multi-paragraph text."
         )
         try:
             return call_real_ai(prompt)
         except Exception:
-            return f"Welcome to your {self.subject.capitalize()} study session! Today we are working on {curr_unit} ({curr_sub}). Let's walk through the foundational mechanisms and hardware architecture together."
+            return f"Welcome to our {self.subject.capitalize()} study session! Today we are focusing on {curr_unit}. You can review the full lesson notes and diagrams in Obsidian anytime. To get started: how would you describe the primary mechanism behind this concept?"
 
 class LocalOpenAIHandler(BaseHTTPRequestHandler):
     tutor: Optional[RealAITutorEngine] = None
