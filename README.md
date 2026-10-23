@@ -16,20 +16,21 @@ An accuracy-first, evidence-based learning assistant that transforms your course
 
 ## 🚀 Quickstart
 
-### 1. One-Step Installation
+### 1. One-Step Scratch Kickstart (macOS & Linux)
 
-Clone the repository and run the setup script for your platform:
+No package managers or Homebrew needed. Works out of the box with standard Python:
 
-**macOS & Linux (Universal Auto-Detection):**
 ```bash
+./start.sh
+# or:
 ./install.sh
 ```
 
-Or run directly by platform:
-- **macOS:** `./scripts/install_mac.sh` (or `brew install poppler aichat`)
-- **Linux:** `./scripts/install_linux.sh`
-- **Windows (PowerShell):** `powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1`
-- **Windows (WSL):** `./install.sh`
+This single command:
+1. Detects your platform and sets up an isolated Python environment (zero Homebrew or root required).
+2. Sets up PDF textbook reading tools automatically.
+3. Prompts for your free Gemini API key to activate dynamic AI.
+4. Verifies system health and boots up your study assistant.
 
 ### 2. Launching
 
