@@ -98,10 +98,6 @@ class KnowledgeBoundarySearch:
         Dynamically extracts context from the subject's course materials
         and generates graduated diagnostic questions (Level 1 to Level 5).
         """
-        # If Spanish and offline/quick, use calibrated bank
-        if self.subject == "spanish":
-            return self._get_spanish_fallback_bank()
-
         # Gather course material context for the subject
         materials = self.rag.scan_materials()
         chunks = self.rag.retrieve_context("overview introduction fundamentals advanced concepts", subject=self.subject, top_k=6)
@@ -156,6 +152,10 @@ Respond strictly in valid JSON format with NO markdown wrapping:
                 return probes
         except Exception:
             pass
+
+        # If Spanish and offline/fallback, use calibrated bank
+        if self.subject == "spanish":
+            return self._get_spanish_fallback_bank()
 
         # Generic fallback if AI is unavailable
         return [

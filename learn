@@ -26,11 +26,19 @@ from assistant.curriculum_planner import CurriculumPlanner
 from assistant.obsidian_sync import ObsidianNoteSync
 from assistant.rag_manager import MaterialRAGManager
 from assistant.terminal_chat import TerminalChatRunner
+from assistant.ai_tutor import get_ai_status, call_real_ai
 
 def print_header():
-    print("""
+    ai_ok, ai_desc = get_ai_status()
+    if ai_ok:
+        engine_line = f"  ⚡ AI Engine: Active ({ai_desc})"
+    else:
+        engine_line = f"  ⚠️  AI Engine: {ai_desc}\n  👉 Set GEMINI_API_KEY in .env for dynamic AI generation"
+    
+    print(f"""
 ======================================================================
   Personalized Study Assistant
+{engine_line}
 ======================================================================
     """.strip("\n"))
 
@@ -154,6 +162,56 @@ def cmd_chat(subject: Optional[str] = None):
     runner = TerminalChatRunner(subject=subj)
     runner.start_session(interactive_repl=True)
 
+def cmd_doctor():
+    print_header()
+    print("\n🔍 System Health & Diagnostic Check:")
+    print("-" * 65)
+
+    # 1. AI Connection Test
+    ai_ok, ai_desc = get_ai_status()
+    if ai_ok:
+        print(f"  [✓] AI Engine: Connected via {ai_desc}")
+        print("      Testing live model ping... ", end="", flush=True)
+        try:
+            res = call_real_ai("Respond with the exact word 'PONG'")
+            if "pong" in res.lower():
+                print("OK! (Dynamic AI intelligence active)")
+            else:
+                print(f"Response received ({res[:40]}...)")
+        except Exception as e:
+            print(f"Warning ({e})")
+    else:
+        print("  [!] AI Engine: Offline Mode")
+        print("      No API key was detected in your environment or .env file.")
+        print("      Without an API key, the system uses static offline fallback questions.")
+        print("      To activate live dynamic generation and adaptive tutoring:")
+        print("        1. Copy .env.example to .env:  cp .env.example .env")
+        print("        2. Add a Gemini key:          GEMINI_API_KEY=AIzaSy...")
+        print("           (or OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY)")
+
+    # 2. Materials
+    rag = MaterialRAGManager()
+    mats = rag.scan_materials()
+    print(f"\n  [✓] Course Materials: {len(mats)} subject folder(s) found in material/")
+    for s, files in mats.items():
+        print(f"      • {s}: {len(files)} document(s)")
+    if not mats:
+        print("      (Tip: Drop PDFs or notes into material/<subject>/ to ground the tutor)")
+
+    # 3. Obsidian Vault
+    md_dir = os.path.abspath(os.path.join(BASE_DIR, "md"))
+    dash = os.path.join(md_dir, "00_INDEX_DASHBOARD.md")
+    if os.path.exists(dash):
+        print(f"\n  [✓] Obsidian Vault: Active at {md_dir}")
+    else:
+        print(f"\n  [!] Obsidian Vault: Not yet initialized (run ./learn check to create it)")
+
+    # 4. CLI Tools
+    import shutil
+    aichat_installed = shutil.which("aichat") is not None
+    print(f"\n  [{'✓' if aichat_installed else '·'}] AIChat CLI: {'Installed' if aichat_installed else 'Optional (Direct Python REPL active)'}")
+    print("-" * 65 + "\n")
+
 def interactive_menu():
     while True:
         print_header()
@@ -163,10 +221,11 @@ def interactive_menu():
         print("  3. View Study Progress & Topics")
         print("  4. View My Notes & Questions")
         print("  5. Refresh Course Materials")
-        print("  6. Exit")
+        print("  6. System Health & AI Diagnostic Check")
+        print("  7. Exit")
 
         try:
-            choice = input("\nSelect [1-6]: ").strip()
+            choice = input("\nSelect [1-7]: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break
@@ -186,11 +245,14 @@ def interactive_menu():
         elif choice == "5":
             cmd_ingest()
             input("\nPress Enter to return to menu...")
-        elif choice in ["6", "q", "exit"]:
+        elif choice == "6":
+            cmd_doctor()
+            input("\nPress Enter to return to menu...")
+        elif choice in ["7", "q", "exit"]:
             print("\nGoodbye!")
             break
         else:
-            print("Please select 1-6.")
+            print("Please select 1-7.")
 
 def main():
     if len(sys.argv) > 1:
@@ -209,6 +271,8 @@ def main():
             cmd_sync()
         elif arg in ["ingest", "materials"]:
             cmd_ingest()
+        elif arg in ["doctor", "health", "checkup"]:
+            cmd_doctor()
         elif arg in ["help", "-h", "--help"]:
             print(__doc__)
         else:

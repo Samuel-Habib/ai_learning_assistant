@@ -62,6 +62,26 @@ def call_direct_api(prompt: str) -> Optional[str]:
         except Exception as e:
             return f"Error contacting Gemini API: {e}"
 
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+    if anthropic_key:
+        url = "https://api.anthropic.com/v1/messages"
+        payload = json.dumps({
+            "model": "claude-3-5-haiku-20241022",
+            "max_tokens": 1024,
+            "messages": [{"role": "user", "content": prompt}]
+        }).encode("utf-8")
+        req = urllib.request.Request(url, data=payload, headers={
+            "Content-Type": "application/json",
+            "x-api-key": anthropic_key,
+            "anthropic-version": "2023-06-01"
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data["content"][0]["text"].strip()
+        except Exception as e:
+            return f"Error contacting Anthropic API: {e}"
+
     if openai_key or groq_key:
         url = "https://api.openai.com/v1/chat/completions" if openai_key else "https://api.groq.com/openai/v1/chat/completions"
         key = openai_key or groq_key
@@ -82,6 +102,21 @@ def call_direct_api(prompt: str) -> Optional[str]:
             return f"Error contacting AI API: {e}"
 
     return None
+
+def get_ai_status() -> tuple[bool, str]:
+    """Returns whether a real AI model backend is configured and its description."""
+    load_dotenv()
+    if os.environ.get("GEMINI_API_KEY"):
+        return True, "Gemini API (gemini-1.5-flash)"
+    if os.environ.get("OPENAI_API_KEY"):
+        return True, "OpenAI API (gpt-4o-mini)"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True, "Anthropic API (claude-3-5-haiku)"
+    if os.environ.get("GROQ_API_KEY"):
+        return True, "Groq API (llama-3.3-70b)"
+    if shutil.which("agy"):
+        return True, "Local Antigravity CLI (gemini-3.8-flash)"
+    return False, "Offline Mode (No API key found in .env)"
 
 def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 60) -> str:
     """Invokes AI through direct API (macOS/cross-platform) or system CLI."""

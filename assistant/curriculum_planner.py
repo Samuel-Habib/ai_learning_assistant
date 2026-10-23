@@ -42,21 +42,19 @@ class CurriculumPlanner:
 
     def _get_modules(self) -> List[Tuple[str, str]]:
         """Returns 5-6 structured progression modules for the given subject."""
-        if self.subject == "spanish":
-            return [
-                ("1. Present Tense Foundations", "Regulars, Pronoun-Drop, Agreement"),
-                ("2. Ser vs. Estar & Stem Changers", "Essence vs State, Boot Alternation"),
-                ("3. Preterite vs Imperfect Aspect", "Completed vs Ongoing Past"),
-                ("4. Stative Verbs in Past Tenses", "Conocer, Saber, Querer, Poder"),
-                ("5. The Subjunctive Mood", "Wishes, Doubts, Impersonal Triggers"),
-                ("6. Narrative Synthesis & Practice", "Complex Sentences & Composition")
-            ]
-
         # Try to dynamically extract modules from course materials using AI
         chunks = self.rag.retrieve_context("contents syllabus chapters overview introduction", subject=self.subject, top_k=4)
         context = ""
         for c in chunks:
             context += f"{c['text'][:350]}\n"
+
+        if not context:
+            materials = self.rag.scan_materials()
+            if self.subject in materials:
+                for f in materials[self.subject][:2]:
+                    text = self.rag.extract_text_from_file(f)
+                    if text:
+                        context += f"{text[:600]}\n"
 
         if context:
             prompt = f"""For the subject '{self.subject.capitalize()}', extract or create 5 to 6 sequential learning units from foundational to advanced mastery based on:
@@ -78,6 +76,16 @@ Respond strictly in valid JSON format:
                     return [(str(item.get("title", f"Unit {i+1}")), str(item.get("subtitle", ""))) for i, item in enumerate(data[:6])]
             except Exception:
                 pass
+
+        if self.subject == "spanish":
+            return [
+                ("1. Present Tense Foundations", "Regulars, Pronoun-Drop, Agreement"),
+                ("2. Ser vs. Estar & Stem Changers", "Essence vs State, Boot Alternation"),
+                ("3. Preterite vs Imperfect Aspect", "Completed vs Ongoing Past"),
+                ("4. Stative Verbs in Past Tenses", "Conocer, Saber, Querer, Poder"),
+                ("5. The Subjunctive Mood", "Wishes, Doubts, Impersonal Triggers"),
+                ("6. Narrative Synthesis & Practice", "Complex Sentences & Composition")
+            ]
 
         # Standard generic curriculum structure
         return [
