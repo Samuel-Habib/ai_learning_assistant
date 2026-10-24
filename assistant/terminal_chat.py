@@ -91,7 +91,7 @@ class TerminalChatRunner:
         except ImportError:
             from assistant.db import StateManager
         db = StateManager()
-        history = db.get_chat_history(self.subject, limit=6)
+        history = db.get_chat_history(self.subject, limit=10)
 
         try:
             from .lesson_manager import LessonManager
@@ -105,21 +105,47 @@ class TerminalChatRunner:
             from fact_checker import BackgroundFactChecker
         fact_checker = BackgroundFactChecker()
 
-        # Tutor initiates dialogue proactively
-        try:
-            with Spinner("Your tutor is preparing the session..."):
-                greeting = engine.generate_opening_greeting()
-            print_tutor_message(greeting)
-            history.append({"role": "assistant", "content": greeting})
-            db.append_chat_message(self.subject, "assistant", greeting)
-            if len(greeting) > 200:
-                lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
-            fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, "Start session", greeting)
-        except Exception:
-            default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! Today we are focusing on {curr_unit} ({planner.modules[active_idx][1]}). Let's walk through the core mechanisms together."
-            print_tutor_message(default_greeting)
-            history.append({"role": "assistant", "content": default_greeting})
-            db.append_chat_message(self.subject, "assistant", default_greeting)
+        # Check if we are resuming an ongoing session or starting fresh
+        if history:
+            last_msg = history[-1]
+            if last_msg["role"] == "assistant":
+                # Tutor already posed a question/topic in the previous turn
+                resumption_text = (
+                    f"Welcome back to your study session on {curr_unit}!\n"
+                    f"Picking up where we left off:\n\n"
+                    f"{last_msg['content']}"
+                )
+                print_tutor_message(resumption_text)
+            else:
+                # Last message was from user - formulate immediate response to pick up the thread
+                try:
+                    with Spinner("Picking up from your previous note..."):
+                        response = engine.formulate_response(last_msg["content"], history=history[:-1])
+                    print_tutor_message(response)
+                    history.append({"role": "assistant", "content": response})
+                    db.append_chat_message(self.subject, "assistant", response)
+                    if len(response) > 200:
+                        lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, response)
+                    fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, last_msg["content"], response)
+                except Exception:
+                    default_greeting = f"Welcome back to {curr_unit}! Let's continue from where we left off."
+                    print_tutor_message(default_greeting)
+        else:
+            # Tutor initiates dialogue proactively for a fresh session
+            try:
+                with Spinner("Your tutor is preparing the session..."):
+                    greeting = engine.generate_opening_greeting()
+                print_tutor_message(greeting)
+                history.append({"role": "assistant", "content": greeting})
+                db.append_chat_message(self.subject, "assistant", greeting)
+                if len(greeting) > 200:
+                    lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
+                fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, "Start session", greeting)
+            except Exception:
+                default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! Today we are focusing on {curr_unit} ({planner.modules[active_idx][1]}). Let's walk through the core mechanisms together."
+                print_tutor_message(default_greeting)
+                history.append({"role": "assistant", "content": default_greeting})
+                db.append_chat_message(self.subject, "assistant", default_greeting)
 
         while True:
             # Check if background verifier discovered a technical nuance or correction
@@ -138,6 +164,22 @@ class TerminalChatRunner:
                 print(style_text(f"\n✨ Session paused. Lesson notes & diagrams saved to Obsidian:", Style.DIM, Style.GREEN))
                 print(style_text(f"   {lesson_path}", Style.CYAN))
                 break
+
+            if user_msg.lower() in ["reset", "/reset", "restart"]:
+                with db._get_connection() as conn:
+                    conn.cursor().execute("DELETE FROM chat_history WHERE subject = ?", (self.subject.strip().lower().replace(" ", "_"),))
+                    conn.commit()
+                history.clear()
+                print(style_text(f"\n🔄 Chat history reset for {self.subject.replace('_', ' ').title()}. Starting a fresh session...\n", Style.DIM, Style.GREEN))
+                try:
+                    with Spinner("Your tutor is preparing the session..."):
+                        greeting = engine.generate_opening_greeting()
+                    print_tutor_message(greeting)
+                    history.append({"role": "assistant", "content": greeting})
+                    db.append_chat_message(self.subject, "assistant", greeting)
+                except Exception:
+                    pass
+                continue
 
             db.append_chat_message(self.subject, "user", user_msg)
             try:

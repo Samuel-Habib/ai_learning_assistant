@@ -234,7 +234,7 @@ class RealAITutorEngine:
         history_text = ""
         if history:
             history_text = "\nRecent Conversation:\n"
-            for msg in history[-6:]:
+            for msg in history[-8:]:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
                 history_text += f"{role.capitalize()}: {content}\n"

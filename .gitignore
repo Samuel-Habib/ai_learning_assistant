@@ -43,3 +43,10 @@ data/*.db
 *.sqlite
 *.sqlite3
 
+# User Course Materials & Obsidian Vault Notes (Keep folders via .gitkeep)
+material/*
+!material/.gitkeep
+md/*
+!md/.gitkeep
+
+

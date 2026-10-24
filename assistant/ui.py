@@ -12,6 +12,11 @@ import re
 import shutil
 from typing import Optional, List, Tuple
 
+try:
+    import readline
+except ImportError:
+    pass
+
 # Detect color capability
 COLOR_ENABLED = sys.stdout.isatty() and "NO_COLOR" not in os.environ
 
@@ -242,10 +247,28 @@ def print_tutor_message(message: str):
     print(f"\n{tag} > {wrapped}\n")
 
 def prompt_user(prompt_text: str = "You > ") -> str:
-    """Prompts student with an attractive colored prompt."""
+    """
+    Prompts student with an attractive colored prompt, robustly handling
+    multi-line clipboard pastes and stripping terminal escape artifacts.
+    """
     tag = style_text("👤 You", Style.BOLD, Style.BRIGHT_BLUE)
     try:
-        val = input(f"{tag} > ").strip()
-        return val
+        first_line = input(f"{tag} > ").strip()
+        lines = [first_line]
+
+        # Handle multi-line clipboard paste without line-buffer glitching
+        if sys.stdin.isatty():
+            import select
+            while select.select([sys.stdin], [], [], 0.05)[0]:
+                extra = sys.stdin.readline()
+                if not extra:
+                    break
+                lines.append(extra.rstrip("\r\n"))
+
+        full_text = "\n".join(lines).strip()
+        # Clean stray terminal control codes (e.g. ^[E, bracketed paste tags)
+        cleaned = re.sub(r'\x1b\[[0-9;]*[a-zA-Z~]', '', full_text)
+        cleaned = re.sub(r'\x1b[A-Za-z]', '', cleaned)
+        return cleaned.strip()
     except (EOFError, KeyboardInterrupt):
         return "exit"

@@ -126,5 +126,27 @@ class TestWordWrapAndCache(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+    def test_paste_sanitization(self):
+        import re
+        raw_paste = "## Section 3\x1b[200~\nLine 1\x1bE\nLine 2\x1b[201~"
+        cleaned = re.sub(r'\x1b\[[0-9;]*[a-zA-Z~]', '', raw_paste)
+        cleaned = re.sub(r'\x1b[A-Za-z]', '', cleaned).strip()
+        self.assertEqual(cleaned, "## Section 3\nLine 1\nLine 2")
+
+    def test_session_resumption_history(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            db = StateManager(db_path=os.path.join(temp_dir, "test_resume.db"), md_dir=temp_dir)
+            db.append_chat_message("usb", "assistant", "Why does USB use star topology?")
+            db.append_chat_message("usb", "user", "Because of bus capacitance.")
+            db.append_chat_message("usb", "assistant", "Correct! Which pin is pulled up for Full-Speed?")
+
+            history = db.get_chat_history("usb", limit=10)
+            self.assertEqual(len(history), 3)
+            self.assertEqual(history[-1]["role"], "assistant")
+            self.assertIn("Full-Speed", history[-1]["content"])
+        finally:
+            shutil.rmtree(temp_dir)
+
 if __name__ == "__main__":
     unittest.main()
