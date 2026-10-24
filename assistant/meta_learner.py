@@ -15,60 +15,60 @@ except ImportError:
     from db import StateManager
     from ai_tutor import call_real_ai
 
-# Catalog of evidence-based pedagogical styles tailored for technical mastery
+# Catalog of evidence-based pedagogical styles tailored for all learning domains
 PEDAGOGICAL_STYLES: Dict[str, Dict[str, str]] = {
     "CAUSAL_SCENARIO": {
-        "name": "Causal Scenario / Engineering Dilemma",
-        "tag": "🛠️ Causal Engineering",
-        "description": "Frames concrete design dilemmas and first-principles problems before attaching standard spec terminology.",
+        "name": "Real-World Scenarios / Practical Dilemmas",
+        "tag": "💡 Practical Scenarios",
+        "description": "Frames realistic scenarios and first-principles thinking before introducing formal terms.",
         "directive": (
-            "PEDAGOGICAL STYLE: CAUSAL SCENARIO / FIRST-PRINCIPLES ENGINEERING.\n"
-            "- CRITICAL RULE: NEVER ask the student to recall or guess arbitrary specification terms, token names, or acronyms.\n"
-            "- Instead, present a real physical, circuit, or protocol engineering dilemma (e.g. 'Imagine you are designing the host controller and a device sends corrupted packets... how must the bus react?').\n"
-            "- Guide the student to deduce the necessary mechanism through first principles.\n"
-            "- Only AFTER the functional mechanism is clear, attach the formal specification name to it."
+            "PEDAGOGICAL STYLE: REAL-WORLD SCENARIOS / PRACTICAL PROBLEM SOLVING.\n"
+            "- CRITICAL RULE: NEVER ask the student to recall or guess arbitrary textbook terms, names, or jargon.\n"
+            "- Instead, present a relatable scenario, design problem, or real-world puzzle (e.g. 'Imagine you are setting up... what dilemma happens if...?').\n"
+            "- Guide the student to deduce the underlying mechanism or logic through first principles.\n"
+            "- Only AFTER the core concept makes intuitive sense, introduce the standard terminology."
         )
     },
     "FEYNMAN_SYNTHESIS": {
         "name": "Feynman Synthesis / Teach-Back",
-        "tag": "🎓 Feynman Teach-Back",
-        "description": "Student explains the overarching architecture or packet journey in their own words; tutor validates and fills edge cases.",
+        "tag": "🎓 Teach-Back",
+        "description": "Student explains the concept in their own simple words; tutor validates and fills missing links.",
         "directive": (
             "PEDAGOGICAL STYLE: FEYNMAN SYNTHESIS / TEACH-BACK.\n"
-            "- Instead of quizzing or testing, prompt the student to synthesize the overarching concept or trace a packet's journey in their own words.\n"
-            "- Act as an encouraging peer engineer listening to their walkthrough.\n"
-            "- Validate their strong intuition, praise accurate mental models, and gently clarify missing links or edge cases without quizzing."
+            "- Instead of quizzing or testing, prompt the student to explain the big picture in their own words as if explaining it to a friend.\n"
+            "- Act as an encouraging, curious study partner listening to their explanation.\n"
+            "- Validate their strong intuition, praise accurate mental models, and gently clarify any gaps without quizzing."
         )
     },
     "MECHANICAL_ANALOGY": {
-        "name": "Mechanical / Physical Intuition",
-        "tag": "⚙️ Physical Intuition",
-        "description": "Bridges complex protocol mechanisms to intuitive real-world physical and mechanical system models.",
+        "name": "Intuitive Analogies & Mental Models",
+        "tag": "🧩 Everyday Analogies",
+        "description": "Bridges complex or abstract mechanisms to intuitive everyday systems and relatable analogies.",
         "directive": (
-            "PEDAGOGICAL STYLE: MECHANICAL & INTUITIVE ANALOGY.\n"
-            "- Before diving into register bits, timing, or protocol states, anchor the concept in a vivid, precise physical or mechanical analogy.\n"
-            "- Compare the abstract mechanism to familiar real-world systems (e.g., slotted airport runways for host scheduling, or pipe pressure for bus capacitance).\n"
-            "- Check if the intuition makes sense before bridging directly into the hardware spec."
+            "PEDAGOGICAL STYLE: INTUITIVE ANALOGIES & EVERYDAY MODELS.\n"
+            "- Before diving into technical details, formulas, or formal definitions, anchor the concept in a vivid, relatable everyday analogy.\n"
+            "- Compare the abstract mechanism to familiar real-world experiences (e.g., traffic intersections, water pipes, sports, or daily life).\n"
+            "- Check if the intuition clicks before connecting it directly to the subject material."
         )
     },
     "REVERSE_TRACE": {
-        "name": "Reverse Trace / Step-by-Step Transaction Walkthrough",
-        "tag": "🔍 Reverse Trace",
-        "description": "Traces a concrete physical transaction, signal transition, or packet timeline from wire to host memory.",
+        "name": "Step-by-Step Walkthrough",
+        "tag": "🔍 Step-by-Step",
+        "description": "Traces a concrete process, sequence of events, or problem step-by-step from beginning to end.",
         "directive": (
-            "PEDAGOGICAL STYLE: REVERSE TRACE / TRANSACTION WALKTHROUGH.\n"
-            "- Walk step-by-step through a concrete timeline or signal trace (e.g., Step 1: Physical line state -> Step 2: Packet token -> Step 3: Buffer FIFO).\n"
-            "- Ask the student to predict only the immediate NEXT domino in the sequence based on physics and logic."
+            "PEDAGOGICAL STYLE: STEP-BY-STEP PROCESS WALKTHROUGH.\n"
+            "- Walk step-by-step through a concrete sequence, timeline, or chain of events (e.g., Step 1 -> Step 2 -> Step 3).\n"
+            "- Ask the student to predict only the immediate NEXT step in the chain based on logic and cause-and-effect."
         )
     },
     "SOCRATIC_PROBE": {
-        "name": "Socratic Boundary Probe",
-        "tag": "🎯 Socratic Probe",
-        "description": "Targeted diagnostic questions to locate the exact frontier of understanding, with immediate scaffolding.",
+        "name": "Socratic Questioning",
+        "tag": "🎯 Socratic Questions",
+        "description": "Targeted conceptual questions to discover understanding, with gentle hints whenever unsure.",
         "directive": (
-            "PEDAGOGICAL STYLE: SOCRATIC BOUNDARY PROBE.\n"
-            "- Ask ONE targeted conceptual question at the calibrated frontier of this active unit.\n"
-            "- If the student shows any uncertainty or answers incorrectly, immediately provide scaffolding or a hint—never let them guess in the dark."
+            "PEDAGOGICAL STYLE: SOCRATIC QUESTIONING.\n"
+            "- Ask ONE targeted conceptual question at the edge of the student's current understanding.\n"
+            "- If the student shows any uncertainty, immediately provide a supportive hint or simple example—never let them guess in the dark."
         )
     }
 }
@@ -303,13 +303,13 @@ class MetaLearningEngine:
 
         if is_friction:
             status = "⚡ Cognitive Friction Detected"
-            diagnosis = "The session hit friction on arbitrary spec nomenclature and guessing questions."
+            diagnosis = "The session hit friction on memorizing formal terminology or ungrounded questions."
             recommended_style = "CAUSAL_SCENARIO" if curr_style != "CAUSAL_SCENARIO" else "FEYNMAN_SYNTHESIS"
             rec_info = PEDAGOGICAL_STYLES[recommended_style]
             message = (
-                f"We noticed friction around specific protocol vocabulary or ungrounded questions. "
-                f"Switching approach to **{rec_info['name']}**—we'll present the engineering dilemma first "
-                f"so the mechanisms make intuitive physical sense before naming them."
+                f"We noticed friction around specific technical vocabulary or ungrounded questions. "
+                f"Switching approach to **{rec_info['name']}**—we'll present a concrete, relatable scenario first "
+                f"so the underlying concept makes intuitive sense before naming it."
             )
         else:
             status = "✨ Optimal Zone of Proximal Development (ZPD)"
@@ -341,15 +341,15 @@ class MetaLearningEngine:
         friction_rate = len(frictions) / max(1, len([m for m in history if m.get("role") == "user"]))
 
         if friction_rate > 0.3:
-            status = "⚠️ Nomenclature / Interrogation Friction"
+            status = "⚠️ Terminology / Interrogation Friction"
             rec_style = "CAUSAL_SCENARIO"
-            action = "Shift to first-principles design dilemmas; eliminate trivia recall."
+            action = "Shift to relatable scenarios and first principles; eliminate trivia recall."
         elif friction_rate > 0.15:
             status = "⚖️ Moderate Challenge Frontier"
             rec_style = "FEYNMAN_SYNTHESIS"
-            action = "Encourage student teach-back to solidify structural connections."
+            action = "Encourage student teach-back to solidify conceptual connections."
         else:
-            status = "🎯 Fluent Schema Consolidation"
+            status = "🎯 Fluent Concept Mastery"
             rec_style = curr_style
             action = "Pace is optimal. Continue current trajectory to unit mastery."
 

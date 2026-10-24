@@ -282,11 +282,10 @@ class TerminalChatRunner:
                     print_unit_mastery_card(curr_unit, next_title, new_level)
 
                     mastery_reply = (
-                        f"You have officially mastered **{curr_unit}**!\n\n"
-                        f"Every foundational mechanism has been verified: star topology point-to-point isolation, "
-                        f"D+/D- resistor speed detection, the host-scheduled arbitration model, and all 4 transfer modes.\n\n"
-                        f"Your Obsidian roadmap has been updated with Unit 1 marked green (Mastered). "
-                        f"Would you like to wrap up today's session here, or take a look at **{next_title}**?"
+                        f"Congratulations! You have officially mastered **{curr_unit}**!\n\n"
+                        f"You've shown a rock-solid grasp of the core concepts, principles, and relationships in this unit.\n\n"
+                        f"Your Obsidian study roadmap has been updated and marked as Mastered (green). "
+                        f"Would you like to wrap up today's session, or are you ready to explore **{next_title}**?"
                     )
                     print_tutor_message(mastery_reply)
                     history.append({"role": "user", "content": user_msg})

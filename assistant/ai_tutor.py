@@ -289,7 +289,7 @@ class RealAITutorEngine:
             f"2. Keep your terminal response lean, concise, and focused (1 to 2 short paragraphs, max 3-5 sentences total).\n"
             f"3. Strictly obey the active PEDAGOGICAL STYLE and ZPD BOUNDARY DIRECTIVE.\n"
             f"4. NO NOMENCLATURE GUESSING GAMES: If the student hesitates ('idk', 'not sure'), immediately anchor the structural mechanism causally in 1-2 sentences. Never demand arbitrary vocabulary recall.\n"
-            f"5. Maintain a sharp, collaborative engineer-to-engineer tone.\n\n"
+            f"5. Maintain an encouraging, clear, and engaging mentor tone (like a supportive, friendly high-school or college tutor).\n\n"
             f"Your Response:"
         )
 
