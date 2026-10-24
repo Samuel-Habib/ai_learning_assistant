@@ -131,8 +131,22 @@ def get_ai_status() -> tuple[bool, str]:
         return True, "Local Antigravity CLI (gemini-3.8-flash)"
     return False, "Offline Mode (No API key found in .env)"
 
-def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 45) -> str:
-    """Invokes AI through system CLI (Antigravity) or direct provider API (macOS/cross-platform)."""
+def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int = 45, use_cache: bool = True) -> str:
+    """Invokes AI through system CLI (Antigravity) or direct provider API with SQLite completion caching."""
+    # Check SQLite persistent cache first to minimize token consumption
+    cache_inst = None
+    if use_cache:
+        try:
+            from .cache import LLMCache
+            cache_inst = LLMCache()
+            cached = cache_inst.get(prompt, model)
+            if cached:
+                return cached
+        except Exception:
+            pass
+
+    response_text = None
+
     # 1. If running under Antigravity CLI environment, prioritize native CLI
     if shutil.which("agy"):
         cmd = [
@@ -147,26 +161,36 @@ def call_real_ai(prompt: str, model: str = "gemini-3.8-flash-low", timeout: int 
         try:
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             if proc.returncode == 0 and proc.stdout.strip():
-                return proc.stdout.strip()
+                response_text = proc.stdout.strip()
         except subprocess.TimeoutExpired:
             pass
         except Exception:
             pass
 
     # 2. Check direct provider API key (Gemini, OpenAI, Anthropic, Groq)
-    direct_resp = call_direct_api(prompt)
-    if direct_resp is not None and not direct_resp.startswith("Error contacting") and not direct_resp.startswith("Network error"):
-        return direct_resp
+    if response_text is None:
+        direct_resp = call_direct_api(prompt)
+        if direct_resp is not None and not direct_resp.startswith("Error contacting") and not direct_resp.startswith("Network error"):
+            response_text = direct_resp
+        elif direct_resp is not None:
+            response_text = direct_resp
 
-    if direct_resp is not None:
-        return direct_resp
+    if response_text is None:
+        return (
+            "No AI provider configured. Set an API key in your terminal or .env file:\n"
+            "  export GEMINI_API_KEY='your_key'   # (Recommended, free tier)\n"
+            "  export OPENAI_API_KEY='your_key'\n"
+            "  export GROQ_API_KEY='your_key'\n"
+        )
 
-    return (
-        "No AI provider configured. Set an API key in your terminal or .env file:\n"
-        "  export GEMINI_API_KEY='your_key'   # (Recommended, free tier)\n"
-        "  export OPENAI_API_KEY='your_key'\n"
-        "  export GROQ_API_KEY='your_key'\n"
-    )
+    # Save successful completion to cache
+    if use_cache and cache_inst and response_text and not response_text.startswith("Error"):
+        try:
+            cache_inst.set(prompt, response_text, model)
+        except Exception:
+            pass
+
+    return response_text
 
 class RealAITutorEngine:
     def __init__(self, subject: str = "spanish"):

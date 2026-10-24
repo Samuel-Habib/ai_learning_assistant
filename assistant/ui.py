@@ -9,6 +9,7 @@ import sys
 import time
 import threading
 import re
+import shutil
 from typing import Optional, List, Tuple
 
 # Detect color capability
@@ -153,6 +154,75 @@ def format_terminal_markdown(text: str) -> str:
 
     return "\n".join(formatted_lines)
 
+def visible_len(text: str) -> int:
+    """Calculates visible character width of text ignoring ANSI escape sequences."""
+    return len(re.sub(r'\033\[[0-9;]*m', '', text))
+
+def wrap_text_cleanly(text: str, max_width: Optional[int] = None) -> str:
+    """
+    Wraps text on word boundaries cleanly, respecting ANSI styles and terminal columns.
+    Never splits words in half (e.g. 'detail' will never break as 'detai' + 'l').
+    Preserves code blocks and ASCII box diagrams intact.
+    """
+    term_cols = shutil.get_terminal_size((80, 24)).columns
+    target_width = max_width or max(40, min(term_cols - 2, 88))
+
+    lines = text.split("\n")
+    wrapped_lines = []
+    in_code_block = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```") or stripped.startswith("┌──"):
+            in_code_block = True
+        elif stripped.startswith("└──"):
+            in_code_block = False
+
+        # Never break code blocks, ASCII borders, or headers
+        if in_code_block or any(b in line for b in ["│", "─", "┌", "└", "┼", "┤", "├", "━", "═"]):
+            wrapped_lines.append(line)
+            continue
+
+        if visible_len(line) <= target_width:
+            wrapped_lines.append(line)
+            continue
+
+        # Handle bullet points or numbered list hanging indents
+        indent_match = re.match(r"^(\s*(?:[•\-\*]|\d+\.)\s+)", line)
+        if indent_match:
+            first_prefix = indent_match.group(1)
+            sub_prefix = " " * visible_len(first_prefix)
+            rest_of_line = line[len(first_prefix):]
+        else:
+            first_prefix = ""
+            sub_prefix = "  " if line.startswith("  ") else ""
+            rest_of_line = line
+
+        words = rest_of_line.split(" ")
+        cur_line = []
+        cur_vlen = visible_len(first_prefix)
+        is_first = True
+
+        for w in words:
+            if not w:
+                continue
+            wlen = visible_len(w)
+            if cur_line and (cur_vlen + 1 + wlen > target_width):
+                prefix = first_prefix if is_first else sub_prefix
+                wrapped_lines.append(prefix + " ".join(cur_line))
+                cur_line = [w]
+                cur_vlen = visible_len(sub_prefix) + wlen
+                is_first = False
+            else:
+                cur_line.append(w)
+                cur_vlen += (1 if len(cur_line) > 1 else 0) + wlen
+
+        if cur_line:
+            prefix = first_prefix if is_first else sub_prefix
+            wrapped_lines.append(prefix + " ".join(cur_line))
+
+    return "\n".join(wrapped_lines)
+
 def print_tutor_header(subject: str, unit: str = "", level: float = 1.0):
     """Prints a styled header for the tutor study session."""
     border = "═" * 66
@@ -165,10 +235,11 @@ def print_tutor_header(subject: str, unit: str = "", level: float = 1.0):
     print()
 
 def print_tutor_message(message: str):
-    """Displays tutor output with styled speaker tag and formatted markdown."""
+    """Displays tutor output with styled speaker tag, formatted markdown, and clean word wrapping."""
     tag = style_text("🧑‍🏫 Tutor", Style.BOLD, Style.BRIGHT_GREEN)
     formatted = format_terminal_markdown(message.strip())
-    print(f"\n{tag} > {formatted}\n")
+    wrapped = wrap_text_cleanly(formatted)
+    print(f"\n{tag} > {wrapped}\n")
 
 def prompt_user(prompt_text: str = "You > ") -> str:
     """Prompts student with an attractive colored prompt."""

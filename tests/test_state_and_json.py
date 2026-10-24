@@ -101,5 +101,30 @@ class TestStateManager(unittest.TestCase):
         self.assertEqual(chats[0]["role"], "user")
         self.assertEqual(chats[1]["role"], "assistant")
 
+class TestWordWrapAndCache(unittest.TestCase):
+    def test_clean_word_wrap(self):
+        from assistant.ui import wrap_text_cleanly
+        text = "This is a detailed test to confirm that words like detail are never split across lines."
+        wrapped = wrap_text_cleanly(text, max_width=30)
+        for line in wrapped.split("\n"):
+            # Ensure line does not exceed target width + small tolerance
+            self.assertNotIn("detai\n", wrapped)
+            self.assertIn("detail", wrapped)
+
+    def test_llm_cache(self):
+        from assistant.cache import LLMCache
+        temp_dir = tempfile.mkdtemp()
+        try:
+            db_file = os.path.join(temp_dir, "cache_test.db")
+            cache = LLMCache(db_path=db_file)
+            self.assertIsNone(cache.get("test prompt", "gemini"))
+            cache.set("test prompt", "cached answer", "gemini")
+            self.assertEqual(cache.get("test prompt", "gemini"), "cached answer")
+            stats = cache.get_stats()
+            self.assertEqual(stats["total_entries"], 1)
+            self.assertEqual(stats["total_hits"], 1)
+        finally:
+            shutil.rmtree(temp_dir)
+
 if __name__ == "__main__":
     unittest.main()

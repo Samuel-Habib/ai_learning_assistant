@@ -93,6 +93,29 @@ class StateManager:
                 FOREIGN KEY (subject) REFERENCES subjects (name)
             )
             """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS llm_cache (
+                prompt_hash TEXT PRIMARY KEY,
+                model TEXT,
+                prompt TEXT,
+                response TEXT,
+                hits INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS fact_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                subject TEXT NOT NULL,
+                claim_summary TEXT NOT NULL,
+                status TEXT NOT NULL,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
             conn.commit()
 
     # --- Subject Management ---

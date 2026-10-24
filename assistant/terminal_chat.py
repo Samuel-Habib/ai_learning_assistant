@@ -99,6 +99,12 @@ class TerminalChatRunner:
             from lesson_manager import LessonManager
         lesson_mgr = LessonManager()
 
+        try:
+            from .fact_checker import BackgroundFactChecker
+        except ImportError:
+            from fact_checker import BackgroundFactChecker
+        fact_checker = BackgroundFactChecker()
+
         # Tutor initiates dialogue proactively
         try:
             with Spinner("Your tutor is preparing the session..."):
@@ -108,6 +114,7 @@ class TerminalChatRunner:
             db.append_chat_message(self.subject, "assistant", greeting)
             if len(greeting) > 200:
                 lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
+            fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, "Start session", greeting)
         except Exception:
             default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! Today we are focusing on {curr_unit} ({planner.modules[active_idx][1]}). Let's walk through the core mechanisms together."
             print_tutor_message(default_greeting)
@@ -115,6 +122,12 @@ class TerminalChatRunner:
             db.append_chat_message(self.subject, "assistant", default_greeting)
 
         while True:
+            # Check if background verifier discovered a technical nuance or correction
+            pending_fact = fact_checker.get_and_clear_pending_note(self.subject)
+            if pending_fact:
+                print(style_text(f"  🔍 Fact-Check Note: {pending_fact}\n", Style.DIM, Style.CYAN))
+                history.append({"role": "system", "content": f"[Verified Correction]: {pending_fact}"})
+
             user_msg = prompt_user()
 
             if not user_msg:
@@ -136,6 +149,8 @@ class TerminalChatRunner:
                 db.append_chat_message(self.subject, "assistant", response)
                 if len(response) > 200:
                     lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, response)
+                # Launch asynchronous background verification between dialogue turns
+                fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, user_msg, response)
             except Exception as e:
                 print(style_text(f"\n⚠ Error: {e}", Style.RED))
 
