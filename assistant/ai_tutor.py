@@ -53,25 +53,26 @@ def call_direct_api(prompt: str) -> Optional[str]:
 
     if gemini_key:
         last_gemini_err = None
-        for model in ["gemini-1.5-flash", "gemini-flash-latest", "gemini-2.5-flash"]:
+        for model in ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash"]:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
             payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(req, timeout=10) as resp:
+                with urllib.request.urlopen(req, timeout=15) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    if "candidates" in data and data["candidates"]:
+                        parts = data["candidates"][0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"].strip()
             except urllib.error.HTTPError as e:
-                if e.code == 404:
-                    continue
                 last_gemini_err = f"Error contacting Gemini API ({e.code}): {e.reason}"
-                break
+                continue
             except (TimeoutError, urllib.error.URLError) as e:
                 last_gemini_err = f"Network error contacting Gemini API: {e}"
-                break
+                continue
             except Exception as e:
                 last_gemini_err = f"Error contacting Gemini API: {e}"
-                break
+                continue
         if last_gemini_err and not shutil.which("agy"):
             return last_gemini_err
 

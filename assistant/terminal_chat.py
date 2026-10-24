@@ -40,8 +40,9 @@ class TerminalChatRunner:
         self.aichat_bin = "aichat"
 
     def check_env_keys(self) -> dict:
-        """Detects available LLM credentials from env or .env file."""
+        """Detects available LLM credentials from env or .env file and keeps .env synchronized."""
         env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
+        env_vars = {}
         if os.path.exists(env_path):
             with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -50,6 +51,7 @@ class TerminalChatRunner:
                         k, v = line.split("=", 1)
                         k = k.strip()
                         v = v.strip().strip("'\"")
+                        env_vars[k] = v
                         if k not in os.environ and v:
                             os.environ[k] = v
 
@@ -58,14 +60,23 @@ class TerminalChatRunner:
             val = os.environ.get(var)
             if val and val.strip():
                 keys[var] = val.strip()
+                # If exported in terminal, persist to .env so future runs work automatically
+                if var not in env_vars:
+                    try:
+                        with open(env_path, "a", encoding="utf-8") as f:
+                            f.write(f"\n{var}={val.strip()}\n")
+                    except Exception:
+                        pass
         return keys
 
     def start_session(self, interactive_repl: bool = True):
         # Default to native interactive tutor dialogue for full RAG & Obsidian grounding
+        self.check_env_keys()
         self.run_direct_repl()
 
     def run_direct_repl(self):
         """Native interactive tutor dialogue with full RAG and Obsidian sync."""
+        self.check_env_keys()
 
         # Determine current curriculum unit and frontier level
         try:
@@ -121,8 +132,16 @@ class TerminalChatRunner:
         fact_checker = BackgroundFactChecker()
 
         # Check if we are resuming an ongoing session or starting fresh
-        if history:
-            last_msg = history[-1]
+        # Clean out any previous API setup errors from history so they are never resumed as questions!
+        clean_history = [
+            m for m in history 
+            if not ("No AI provider configured" in m.get("content", "") or 
+                    "Error contacting" in m.get("content", "") or
+                    "Network error" in m.get("content", ""))
+        ]
+
+        if clean_history:
+            last_msg = clean_history[-1]
             if last_msg["role"] == "assistant":
                 # Tutor already posed a question/topic in the previous turn
                 resumption_text = (
@@ -137,32 +156,35 @@ class TerminalChatRunner:
                     with Spinner("Picking up from your previous note..."):
                         response = engine.formulate_response(
                             last_msg["content"],
-                            history=history[:-1],
+                            history=clean_history[:-1],
                             active_unit_idx=active_idx,
                             active_unit_title=curr_unit,
                             modules=planner.modules,
                             boundary_level=planner.boundary_level
                         )
                     print_tutor_message(response)
-                    history.append({"role": "assistant", "content": response})
-                    db.append_chat_message(self.subject, "assistant", response)
+                    clean_history.append({"role": "assistant", "content": response})
+                    if not response.startswith("No AI provider"):
+                        db.append_chat_message(self.subject, "assistant", response)
                     if len(response) > 200:
                         lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, response)
                     fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, last_msg["content"], response)
                 except Exception:
                     default_greeting = f"Welcome back to {curr_unit}! Let's continue from where we left off."
                     print_tutor_message(default_greeting)
+            history = clean_history
         else:
             # Tutor initiates dialogue proactively for a fresh session
             try:
                 with Spinner("Your tutor is preparing the session..."):
                     greeting = engine.generate_opening_greeting()
                 print_tutor_message(greeting)
-                history.append({"role": "assistant", "content": greeting})
-                db.append_chat_message(self.subject, "assistant", greeting)
-                if len(greeting) > 200:
-                    lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
-                fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, "Start session", greeting)
+                if not greeting.startswith("No AI provider"):
+                    history.append({"role": "assistant", "content": greeting})
+                    db.append_chat_message(self.subject, "assistant", greeting)
+                    if len(greeting) > 200:
+                        lesson_mgr.append_dialogue_to_lesson(self.subject, active_idx + 1, curr_unit, greeting)
+                    fact_checker.verify_async(self.subject, active_idx + 1, curr_unit, "Start session", greeting)
             except Exception:
                 default_greeting = f"Welcome to your {self.subject.replace('_',' ').title()} study session! Today we are focusing on {curr_unit} ({planner.modules[active_idx][1]}). Let's walk through the core mechanisms together."
                 print_tutor_message(default_greeting)
