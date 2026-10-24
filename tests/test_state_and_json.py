@@ -148,5 +148,56 @@ class TestWordWrapAndCache(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+class TestMetaLearnerAndZPD(unittest.TestCase):
+    def test_friction_detection(self):
+        from assistant.meta_learner import MetaLearningEngine
+        meta = MetaLearningEngine(subject="usb")
+        self.assertTrue(meta.detect_friction("idk can you give me a hint?"))
+        self.assertTrue(meta.detect_friction("i dont want to play a guessing game here"))
+        self.assertTrue(meta.detect_friction("i have no idea"))
+        self.assertTrue(meta.detect_friction("im not sure i havent read that yet"))
+        self.assertFalse(meta.detect_friction("the host controller"))
+        self.assertFalse(meta.detect_friction("bus capacitance limits signal rise time"))
+
+    def test_zpd_boundary_directive(self):
+        from assistant.meta_learner import MetaLearningEngine
+        meta = MetaLearningEngine(subject="usb")
+        modules = [
+            ("1. USB Fundamentals", "Overview"),
+            ("2. Physical Layer", "D+/D- signaling"),
+            ("3. Device Framework", "Control transfers & descriptors")
+        ]
+        directive = meta.get_zpd_boundary_directive(
+            active_unit_idx=0,
+            active_unit_title="1. USB Fundamentals",
+            modules=modules,
+            boundary_level=0.65
+        )
+        self.assertIn("ZONE OF PROXIMAL DEVELOPMENT (ZPD)", directive)
+        self.assertIn("FORBIDDEN TOPICS", directive)
+        self.assertIn("2. Physical Layer", directive)
+        self.assertIn("3. Device Framework", directive)
+        self.assertIn("NO NOMENCLATURE GUESSING GAMES", directive)
+
+    def test_style_selection_and_adaptation(self):
+        from assistant.meta_learner import MetaLearningEngine
+        meta = MetaLearningEngine(subject="test_subj")
+        styles = meta.list_styles()
+        self.assertIn("CAUSAL_SCENARIO", styles)
+        self.assertIn("FEYNMAN_SYNTHESIS", styles)
+        self.assertIn("REVERSE_TRACE", styles)
+
+        self.assertTrue(meta.set_style("feynman"))
+        self.assertEqual(meta.get_current_style()["key"], "FEYNMAN_SYNTHESIS")
+
+        # Test friction-triggered adaptation
+        res = meta.record_turn_and_check("idk i dont know", "tutor prompt", [], active_unit="Unit 1")
+        # First turn friction count = 1, shouldn't trigger yet (threshold is 2)
+        self.assertIsNone(res)
+        # Second turn friction count = 2 -> triggers meta assessment & adaptation
+        res2 = meta.record_turn_and_check("still no idea, guessing game", "tutor prompt", [], active_unit="Unit 1")
+        self.assertIsNotNone(res2)
+        self.assertIn("Cognitive Friction Detected", res2["status"])
+
 if __name__ == "__main__":
     unittest.main()

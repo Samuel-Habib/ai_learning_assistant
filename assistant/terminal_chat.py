@@ -12,12 +12,20 @@ try:
     from .rag_manager import MaterialRAGManager
     from .obsidian_sync import ObsidianNoteSync
     from .ai_tutor import RealAITutorEngine, start_ai_server
-    from .ui import Spinner, print_tutor_header, print_tutor_message, prompt_user, style_text, Style
+    from .meta_learner import MetaLearningEngine
+    from .ui import (
+        Spinner, print_tutor_header, print_tutor_message, prompt_user,
+        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card
+    )
 except ImportError:
     from rag_manager import MaterialRAGManager
     from obsidian_sync import ObsidianNoteSync
     from ai_tutor import RealAITutorEngine, start_ai_server
-    from ui import Spinner, print_tutor_header, print_tutor_message, prompt_user, style_text, Style
+    from meta_learner import MetaLearningEngine
+    from ui import (
+        Spinner, print_tutor_header, print_tutor_message, prompt_user,
+        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card
+    )
 
 AICHAT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".aichat"))
 MATERIAL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "material"))
@@ -86,6 +94,11 @@ class TerminalChatRunner:
         print()
 
         engine = RealAITutorEngine(subject=self.subject)
+        meta_engine = MetaLearningEngine(subject=self.subject)
+        curr_style_info = meta_engine.get_current_style()
+        print(style_text(f"  🧠 Pedagogical Style: {curr_style_info['tag']}  (/style to change, /meta for assessment)", Style.DIM, Style.CYAN))
+        print()
+
         try:
             from .db import StateManager
         except ImportError:
@@ -120,7 +133,14 @@ class TerminalChatRunner:
                 # Last message was from user - formulate immediate response to pick up the thread
                 try:
                     with Spinner("Picking up from your previous note..."):
-                        response = engine.formulate_response(last_msg["content"], history=history[:-1])
+                        response = engine.formulate_response(
+                            last_msg["content"],
+                            history=history[:-1],
+                            active_unit_idx=active_idx,
+                            active_unit_title=curr_unit,
+                            modules=planner.modules,
+                            boundary_level=planner.boundary_level
+                        )
                     print_tutor_message(response)
                     history.append({"role": "assistant", "content": response})
                     db.append_chat_message(self.subject, "assistant", response)
@@ -165,7 +185,42 @@ class TerminalChatRunner:
                 print(style_text(f"   {lesson_path}", Style.CYAN))
                 break
 
-            if user_msg.lower() in ["reset", "/reset", "restart"]:
+            clean_cmd = user_msg.strip().lower()
+
+            # --- Meta-Learning & ZPD Control Commands ---
+            if clean_cmd in ["/meta", "meta", "/eval", "how am i doing", "meta learning", "do a meta learning analaysis of whats going on here"]:
+                with Spinner("Analyzing session epistemic flow & learning dynamics..."):
+                    assessment = meta_engine.run_explicit_assessment(history, curr_unit)
+                meta_card = {
+                    "status": assessment["status"],
+                    "active_style": assessment["active_style"],
+                    "recommended_style": assessment["recommended_style"],
+                    "message": f"{assessment['action']} (Friction occurrences detected: {assessment['friction_events']}).",
+                    "style_changed": False
+                }
+                print_meta_learning_card(meta_card)
+                continue
+
+            if clean_cmd.startswith("/style") or clean_cmd.startswith("style"):
+                parts = clean_cmd.split(None, 1)
+                if len(parts) == 1:
+                    print_styles_menu(meta_engine.list_styles(), meta_engine.get_current_style()["key"])
+                else:
+                    target_style = parts[1]
+                    if meta_engine.set_style(target_style):
+                        new_s = meta_engine.get_current_style()
+                        print(style_text(f"\n✓ Pedagogical style updated to: {new_s['name']} ({new_s['tag']})\n", Style.BOLD, Style.GREEN))
+                    else:
+                        print(style_text(f"\n⚠ Unknown style '{target_style}'. Available styles:", Style.YELLOW))
+                        print_styles_menu(meta_engine.list_styles(), meta_engine.get_current_style()["key"])
+                continue
+
+            if clean_cmd in ["/boundary", "boundary", "/zpd", "zpd"]:
+                forbidden = [m[0] for i, m in enumerate(planner.modules) if i > active_idx]
+                print_boundary_card(curr_unit, planner.boundary_level, forbidden)
+                continue
+
+            if clean_cmd in ["reset", "/reset", "restart"]:
                 with db._get_connection() as conn:
                     conn.cursor().execute("DELETE FROM chat_history WHERE subject = ?", (self.subject.strip().lower().replace(" ", "_"),))
                     conn.commit()
@@ -181,10 +236,22 @@ class TerminalChatRunner:
                     pass
                 continue
 
+            # Periodic or friction-triggered meta-learning check-in
+            meta_check = meta_engine.record_turn_and_check(user_msg, "", history, active_unit=curr_unit)
+            if meta_check:
+                print_meta_learning_card(meta_check)
+
             db.append_chat_message(self.subject, "user", user_msg)
             try:
                 with Spinner("Thinking..."):
-                    response = engine.formulate_response(user_msg, history=history)
+                    response = engine.formulate_response(
+                        user_msg,
+                        history=history,
+                        active_unit_idx=active_idx,
+                        active_unit_title=curr_unit,
+                        modules=planner.modules,
+                        boundary_level=planner.boundary_level
+                    )
                 print_tutor_message(response)
                 history.append({"role": "user", "content": user_msg})
                 history.append({"role": "assistant", "content": response})

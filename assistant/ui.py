@@ -272,3 +272,51 @@ def prompt_user(prompt_text: str = "You > ") -> str:
         return cleaned.strip()
     except (EOFError, KeyboardInterrupt):
         return "exit"
+
+def print_meta_learning_card(assessment: dict):
+    """Renders a clean, high-visibility Meta-Learning check-in card."""
+    width = min(shutil.get_terminal_size().columns, 70)
+    top = "╭" + "─" * (width - 2) + "╮"
+    bot = "╰" + "─" * (width - 2) + "╯"
+    turn_str = f" (Turn {assessment.get('turn', '')})" if assessment.get('turn') else ""
+    title = f" 🧠 Meta-Learning Check-in{turn_str} "
+
+    print(style_text(top, Style.DIM, Style.CYAN))
+    print(f"│ {style_text(title, Style.BOLD, Style.BRIGHT_CYAN)}")
+    print(f"│ Status: {style_text(assessment.get('status', ''), Style.BOLD, Style.YELLOW)}")
+    print(f"│ Style:  {style_text(assessment.get('active_style', ''), Style.WHITE)}")
+    if assessment.get('style_changed'):
+        print(f"│ Action: {style_text('Adapting to ' + assessment.get('recommended_style', ''), Style.BOLD, Style.BRIGHT_GREEN)}")
+    print("│")
+    msg_wrapped = wrap_text_cleanly(assessment.get("message", ""), max_width=width - 6)
+    for line in msg_wrapped.split("\n"):
+        print(f"│   {style_text(line, Style.WHITE)}")
+    print(style_text(bot, Style.DIM, Style.CYAN))
+    print()
+
+def print_styles_menu(styles: dict, current_key: str):
+    """Displays all available pedagogical styles and how to switch."""
+    print(style_text("\n📚 Available Meta-Learning Pedagogical Styles:", Style.BOLD, Style.CYAN))
+    for key, info in styles.items():
+        is_curr = (key == current_key)
+        prefix = style_text("➤ [ACTIVE] ", Style.BOLD, Style.GREEN) if is_curr else "  • "
+        short_cmd = key.split("_")[0].lower()
+        print(f"{prefix}{style_text(info['name'], Style.BOLD)} (/style {short_cmd})")
+        print(style_text(f"    {info['description']}", Style.DIM))
+    print()
+
+def print_boundary_card(active_unit: str, level: float, forbidden_units: list):
+    """Displays active Zone of Proximal Development (ZPD) boundary limits."""
+    width = min(shutil.get_terminal_size().columns, 70)
+    print(style_text("╭" + "─" * (width - 2) + "╮", Style.DIM, Style.YELLOW))
+    print(f"│ {style_text('🎯 Active Zone of Proximal Development (ZPD)', Style.BOLD, Style.BRIGHT_YELLOW)}")
+    print(f"│ Focus Unit:      {style_text(active_unit, Style.BOLD, Style.WHITE)}")
+    print(f"│ Calibrated Lvl:  {style_text(f'Level {level:.2f}', Style.CYAN)}")
+    print("│")
+    if forbidden_units:
+        print(f"│ {style_text('Locked Downstream Units (Forbidden from Quizzing):', Style.DIM, Style.YELLOW)}")
+        for u in forbidden_units[:4]:
+            print(f"│   🔒 {style_text(u, Style.DIM)}")
+    print(style_text("╰" + "─" * (width - 2) + "╯", Style.DIM, Style.YELLOW))
+    print()
+

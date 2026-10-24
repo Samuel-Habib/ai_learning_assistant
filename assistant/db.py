@@ -116,6 +116,18 @@ class StateManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS meta_learning_state (
+                subject TEXT PRIMARY KEY,
+                current_style TEXT NOT NULL DEFAULT 'CAUSAL_SCENARIO',
+                friction_count INTEGER DEFAULT 0,
+                turn_count INTEGER DEFAULT 0,
+                last_assessment TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject) REFERENCES subjects (name)
+            )
+            """)
             conn.commit()
 
     # --- Subject Management ---
@@ -275,6 +287,59 @@ class StateManager:
             )
             rows = cursor.fetchall()
             return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
+
+    # --- Meta-Learning State ---
+
+    def get_meta_state(self, subject: str) -> Dict[str, Any]:
+        """Retrieves persistent meta-learning state and preferred pedagogical style for the subject."""
+        clean_name = subject.strip().lower().replace(" ", "_")
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT current_style, friction_count, turn_count, last_assessment FROM meta_learning_state WHERE subject = ?",
+                (clean_name,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "current_style": row["current_style"],
+                    "friction_count": row["friction_count"],
+                    "turn_count": row["turn_count"],
+                    "last_assessment": row["last_assessment"] or ""
+                }
+            return {
+                "current_style": "CAUSAL_SCENARIO",
+                "friction_count": 0,
+                "turn_count": 0,
+                "last_assessment": ""
+            }
+
+    def save_meta_state(
+        self,
+        subject: str,
+        current_style: str = "CAUSAL_SCENARIO",
+        friction_count: int = 0,
+        turn_count: int = 0,
+        last_assessment: str = ""
+    ):
+        """Saves persistent meta-learning state and preferred pedagogical style for the subject."""
+        clean_name = subject.strip().lower().replace(" ", "_")
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO meta_learning_state (subject, current_style, friction_count, turn_count, last_assessment, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(subject) DO UPDATE SET
+                    current_style = excluded.current_style,
+                    friction_count = excluded.friction_count,
+                    turn_count = excluded.turn_count,
+                    last_assessment = excluded.last_assessment,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (clean_name, current_style, friction_count, turn_count, last_assessment)
+            )
+            conn.commit()
 
     # --- Obsidian Markdown Vault Generator ---
 

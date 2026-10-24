@@ -11,7 +11,7 @@ import json
 import time
 import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any
 
 try:
     from .rag_manager import MaterialRAGManager
@@ -212,12 +212,47 @@ class RealAITutorEngine:
             return content.strip()
         return "You are an accuracy-first, evidence-based learning assistant."
 
-    def formulate_response(self, user_query: str, history: Optional[List[Dict[str, str]]] = None) -> str:
+    def formulate_response(
+        self,
+        user_query: str,
+        history: Optional[List[Dict[str, str]]] = None,
+        active_unit_idx: Optional[int] = None,
+        active_unit_title: Optional[str] = None,
+        modules: Optional[List[Tuple[str, str]]] = None,
+        boundary_level: Optional[float] = None
+    ) -> str:
         """
         Sends the user query, system role, RAG context, and student notes
-        to the real AI and returns the live response.
+        to the real AI and returns the live response, strictly adhering to
+        active ZPD boundaries and pedagogical style directives.
         """
         system_role = self.load_system_role()
+
+        # Resolve curriculum and boundary context
+        if active_unit_idx is None or active_unit_title is None or modules is None or boundary_level is None:
+            try:
+                from .curriculum_planner import CurriculumPlanner
+            except ImportError:
+                from curriculum_planner import CurriculumPlanner
+            planner = CurriculumPlanner(subject=self.subject)
+            boundary_level = planner.boundary_level
+            modules = planner.modules
+            active_unit_idx = max(0, min(len(modules) - 1, int(boundary_level) - 1)) if modules else 0
+            active_unit_title = modules[active_unit_idx][0] if modules else "Unit 1"
+
+        # Load Meta-Learning Style & ZPD Boundary directives
+        try:
+            from .meta_learner import MetaLearningEngine
+        except ImportError:
+            from meta_learner import MetaLearningEngine
+        meta_engine = MetaLearningEngine(subject=self.subject)
+        style_directive = meta_engine.get_style_directive()
+        zpd_directive = meta_engine.get_zpd_boundary_directive(
+            active_unit_idx=active_unit_idx,
+            active_unit_title=active_unit_title,
+            modules=modules,
+            boundary_level=boundary_level
+        )
 
         # Retrieve authoritative source chunks from user's course material
         chunks = self.rag.retrieve_context(user_query, subject=self.subject, top_k=3)
@@ -239,23 +274,21 @@ class RealAITutorEngine:
                 content = msg.get("content", "")
                 history_text += f"{role.capitalize()}: {content}\n"
 
-        # Construct comprehensive AI prompt
+        # Construct comprehensive AI prompt with ZPD boundary & pedagogical style
         full_ai_prompt = (
             f"{system_role}\n\n"
+            f"{zpd_directive}\n\n"
+            f"{style_directive}\n\n"
             f"{context_text}\n"
             f"{notes_text}\n"
             f"{history_text}\n\n"
             f"Student Message:\n{user_query}\n\n"
             f"CRITICAL TERMINAL CONVERSATION RULES (STRICTLY ENFORCED):\n"
-            f"1. NO WALLS OF TEXT IN THE TERMINAL. All long-form text, textbook explanations, and ASCII diagrams belong in Obsidian (learn/md/subjects/{self.subject}/lessons/).\n"
+            f"1. NO WALLS OF TEXT IN THE TERMINAL. All long-form explanations and ASCII diagrams belong in Obsidian (learn/md/subjects/{self.subject}/lessons/).\n"
             f"2. Keep your terminal response lean, concise, and focused (1 to 2 short paragraphs, max 3-5 sentences total).\n"
-            f"3. When the student answers a question:\n"
-            f"   - Give immediate, concise feedback (1-2 sentences stating if they are correct and the core technical reason).\n"
-            f"   - Immediately ask the NEXT focused question to test their understanding.\n"
-            f"4. When the student asks a specific technical question:\n"
-            f"   - Answer it directly, clearly, and concisely in 2-3 sentences.\n"
-            f"   - If they need diagrams or deep context, tell them to check the relevant section in their Obsidian lesson document.\n"
-            f"5. Maintain a sharp, engaging back-and-forth rhythm. Never lecture.\n\n"
+            f"3. Strictly obey the active PEDAGOGICAL STYLE and ZPD BOUNDARY DIRECTIVE.\n"
+            f"4. NO NOMENCLATURE GUESSING GAMES: If the student hesitates ('idk', 'not sure'), immediately anchor the structural mechanism causally in 1-2 sentences. Never demand arbitrary vocabulary recall.\n"
+            f"5. Maintain a sharp, collaborative engineer-to-engineer tone.\n\n"
             f"Your Response:"
         )
 
