@@ -128,6 +128,35 @@ class MetaLearningEngine:
                 return True
         return False
 
+    def detect_saturation(self, user_msg: str) -> bool:
+        """Detects whether the student or dialogue indicates circularity/repetition or unit saturation."""
+        text = user_msg.lower().strip()
+        patterns = [
+            r"(circles|in circles|round in circles|going around in circles)",
+            r"(asked .*before|already asked|already answered|repeat|repeating|repeated)",
+            r"(when to stop|stop asking|doesnt know when to stop|doesn'?t know when to stop)",
+            r"(redundant|circular|looping|loop|going around in circles)"
+        ]
+        for p in patterns:
+            if re.search(p, text):
+                return True
+        return False
+
+    def advance_frontier(
+        self,
+        current_unit_idx: int,
+        modules: List[Tuple[str, str]]
+    ) -> Tuple[float, str]:
+        """Advances student frontier level, updates curriculum mastery status, and syncs Obsidian."""
+        new_level = float(current_unit_idx + 2)
+        curr_title = modules[current_unit_idx][0] if current_unit_idx < len(modules) else f"Unit {current_unit_idx + 1}"
+        next_title = modules[current_unit_idx + 1][0] if current_unit_idx + 1 < len(modules) else "Course Completed"
+
+        self.db.set_subject_boundary(self.subject, new_level, f"Mastered {curr_title}")
+        self.db.save_curriculum_modules(self.subject, modules, new_level)
+        self.db.sync_to_obsidian(self.subject)
+        return new_level, next_title
+
     def get_zpd_boundary_directive(
         self,
         active_unit_idx: int,
@@ -156,9 +185,10 @@ class MetaLearningEngine:
             f"{future_warning}\n"
             f"STRICT PEDAGOGICAL BOUNDARY RULES:\n"
             f"1. Stay strictly anchored to the core conceptual territory of {active_unit_title}.\n"
-            f"2. NO NOMENCLATURE GUESSING GAMES: Never quiz the student on arbitrary spec acronyms, standard request names (e.g. SetInterface, bAlternateSetting), or future packet types.\n"
-            f"3. Probe at the sweet spot of learning: challenge their conceptual intuition, but provide immediate structural models when they hesitate.\n"
-            f"4. If the student answers 'idk' or shows uncertainty, IMMEDIATELY explain the first-principles reason clearly in 1-2 sentences. Never leave them in the dark."
+            f"2. NO REPETITION / CIRCULAR QUESTIONS: Never re-ask concepts the student has already correctly answered (e.g. speed detection resistors, star topology, 4 transfer types, host-polled model).\n"
+            f"3. UNIT MASTERY & STOPPING CRITERIA: When the student has demonstrated sound understanding of the active unit's core mechanisms, DO NOT keep generating more questions on the same unit. Instead, declare the unit mastered, celebrate their progress, and ask if they are ready to pause or advance to the next unit!\n"
+            f"4. NO NOMENCLATURE GUESSING GAMES: Never quiz the student on arbitrary spec acronyms, standard request names (e.g. SetInterface, bAlternateSetting), or future packet types.\n"
+            f"5. If the student answers 'idk' or shows uncertainty, IMMEDIATELY explain the first-principles reason clearly in 1-2 sentences. Never leave them in the dark."
         )
 
     def get_style_directive(self) -> str:
@@ -182,9 +212,36 @@ class MetaLearningEngine:
         curr_friction = state.get("friction_count", 0)
         curr_style = state.get("current_style", "CAUSAL_SCENARIO")
 
+        is_saturation = self.detect_saturation(user_msg)
         is_friction = self.detect_friction(user_msg)
         if is_friction:
             curr_friction += 1
+
+        if is_saturation:
+            # Immediate Concept Saturation & Unit Mastery Trigger!
+            assessment = {
+                "status": "🏆 Unit Mastery & Concept Saturation Detected",
+                "diagnosis": f"All fundamental pillars of {active_unit} have been demonstrated. Repeated questions detected.",
+                "active_style": PEDAGOGICAL_STYLES.get(curr_style, {}).get("name", curr_style),
+                "recommended_style": "FEYNMAN_SYNTHESIS",
+                "recommended_key": "FEYNMAN_SYNTHESIS",
+                "message": (
+                    f"You've fully mastered all core concepts of **{active_unit}**! "
+                    f"The tutor was looping in circles because you've successfully verified every architecture topic in this unit. "
+                    f"You are officially ready to advance to the next unit!"
+                ),
+                "is_saturation": True,
+                "style_changed": False,
+                "turn": curr_turn
+            }
+            self.db.save_meta_state(
+                self.subject,
+                current_style=curr_style,
+                friction_count=0,
+                turn_count=curr_turn,
+                last_assessment=assessment["status"]
+            )
+            return assessment
 
         # Check triggers:
         # 1. Friction threshold hit (2 or more recent friction signals)

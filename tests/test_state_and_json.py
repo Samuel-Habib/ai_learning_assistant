@@ -181,7 +181,7 @@ class TestMetaLearnerAndZPD(unittest.TestCase):
 
     def test_style_selection_and_adaptation(self):
         from assistant.meta_learner import MetaLearningEngine
-        meta = MetaLearningEngine(subject="test_subj")
+        meta = MetaLearningEngine(subject="test_isolated_meta_subj")
         styles = meta.list_styles()
         self.assertIn("CAUSAL_SCENARIO", styles)
         self.assertIn("FEYNMAN_SYNTHESIS", styles)
@@ -190,14 +190,29 @@ class TestMetaLearnerAndZPD(unittest.TestCase):
         self.assertTrue(meta.set_style("feynman"))
         self.assertEqual(meta.get_current_style()["key"], "FEYNMAN_SYNTHESIS")
 
-        # Test friction-triggered adaptation
-        res = meta.record_turn_and_check("idk i dont know", "tutor prompt", [], active_unit="Unit 1")
+        # Reset turn and friction metrics for isolated subject
+        meta.db.save_meta_state("test_isolated_meta_subj", current_style="CAUSAL_SCENARIO", friction_count=0, turn_count=1)
+
         # First turn friction count = 1, shouldn't trigger yet (threshold is 2)
+        res = meta.record_turn_and_check("idk i dont know", "tutor prompt", [], active_unit="Unit 1")
         self.assertIsNone(res)
         # Second turn friction count = 2 -> triggers meta assessment & adaptation
         res2 = meta.record_turn_and_check("still no idea, guessing game", "tutor prompt", [], active_unit="Unit 1")
         self.assertIsNotNone(res2)
         self.assertIn("Cognitive Friction Detected", res2["status"])
+
+    def test_saturation_and_mastery(self):
+        from assistant.meta_learner import MetaLearningEngine
+        meta = MetaLearningEngine(subject="usb")
+        self.assertTrue(meta.detect_saturation("i feel like we're going around in circles lol it just absolutely doens't know when to stop"))
+        self.assertTrue(meta.detect_saturation("you've asked this question before"))
+        self.assertTrue(meta.detect_saturation("stop repeating"))
+        self.assertFalse(meta.detect_saturation("control transfers on endpoint 0"))
+
+        res = meta.record_turn_and_check("going around in circles", "tutor prompt", [], active_unit="1. USB Fundamentals")
+        self.assertIsNotNone(res)
+        self.assertTrue(res.get("is_saturation"))
+        self.assertIn("Unit Mastery", res["status"])
 
 if __name__ == "__main__":
     unittest.main()

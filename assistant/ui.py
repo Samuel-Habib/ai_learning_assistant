@@ -320,3 +320,19 @@ def print_boundary_card(active_unit: str, level: float, forbidden_units: list):
     print(style_text("╰" + "─" * (width - 2) + "╯", Style.DIM, Style.YELLOW))
     print()
 
+def print_unit_mastery_card(unit_name: str, new_unit: str, new_level: float):
+    """Displays a celebratory Unit Mastery milestone card when a unit is conquered."""
+    width = min(shutil.get_terminal_size().columns, 70)
+    top = "╭" + "─" * (width - 2) + "╮"
+    bot = "╰" + "─" * (width - 2) + "╯"
+    print(style_text(top, Style.BOLD, Style.BRIGHT_GREEN))
+    print(f"│ {style_text('🎉 UNIT CONQUERED & MASTERED! 🎉', Style.BOLD, Style.BRIGHT_GREEN)}")
+    print(f"│ Completed:    {style_text(unit_name, Style.BOLD, Style.WHITE)}")
+    print(f"│ New Frontier: {style_text(f'Level {new_level:.1f} → {new_unit}', Style.BOLD, Style.CYAN)}")
+    print("│")
+    print(f"│ {style_text('✓ Core mental models verified & locked in.', Style.GREEN)}")
+    print(f"│ {style_text('✓ Updated Obsidian roadmap (marked Mastered in green).', Style.DIM)}")
+    print(style_text(bot, Style.BOLD, Style.BRIGHT_GREEN))
+    print()
+
+

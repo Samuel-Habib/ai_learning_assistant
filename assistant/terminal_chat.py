@@ -15,7 +15,8 @@ try:
     from .meta_learner import MetaLearningEngine
     from .ui import (
         Spinner, print_tutor_header, print_tutor_message, prompt_user,
-        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card
+        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card,
+        print_unit_mastery_card
     )
 except ImportError:
     from rag_manager import MaterialRAGManager
@@ -24,7 +25,8 @@ except ImportError:
     from meta_learner import MetaLearningEngine
     from ui import (
         Spinner, print_tutor_header, print_tutor_message, prompt_user,
-        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card
+        style_text, Style, print_meta_learning_card, print_styles_menu, print_boundary_card,
+        print_unit_mastery_card
     )
 
 AICHAT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".aichat"))
@@ -220,6 +222,18 @@ class TerminalChatRunner:
                 print_boundary_card(curr_unit, planner.boundary_level, forbidden)
                 continue
 
+            if clean_cmd in ["/next", "next", "/advance", "advance", "/graduate", "graduate"]:
+                new_level, next_title = meta_engine.advance_frontier(active_idx, planner.modules)
+                print_unit_mastery_card(curr_unit, next_title, new_level)
+                planner.boundary_level = new_level
+                active_idx = max(0, min(len(planner.modules) - 1, int(new_level) - 1))
+                curr_unit = planner.modules[active_idx][0]
+                greeting = f"Welcome to **{curr_unit}**! Previous unit notes have been marked Mastered in Obsidian. What would you like to explore first?"
+                print_tutor_message(greeting)
+                history.append({"role": "assistant", "content": greeting})
+                db.append_chat_message(self.subject, "assistant", greeting)
+                continue
+
             if clean_cmd in ["reset", "/reset", "restart"]:
                 with db._get_connection() as conn:
                     conn.cursor().execute("DELETE FROM chat_history WHERE subject = ?", (self.subject.strip().lower().replace(" ", "_"),))
@@ -236,10 +250,33 @@ class TerminalChatRunner:
                     pass
                 continue
 
-            # Periodic or friction-triggered meta-learning check-in
+            # Periodic or friction/saturation-triggered meta-learning check-in
             meta_check = meta_engine.record_turn_and_check(user_msg, "", history, active_unit=curr_unit)
             if meta_check:
-                print_meta_learning_card(meta_check)
+                if meta_check.get("is_saturation"):
+                    # Concept saturation & Unit Mastery milestone reached!
+                    new_level, next_title = meta_engine.advance_frontier(active_idx, planner.modules)
+                    print_meta_learning_card(meta_check)
+                    print_unit_mastery_card(curr_unit, next_title, new_level)
+
+                    mastery_reply = (
+                        f"You have officially mastered **{curr_unit}**!\n\n"
+                        f"Every foundational mechanism has been verified: star topology point-to-point isolation, "
+                        f"D+/D- resistor speed detection, the host-scheduled arbitration model, and all 4 transfer modes.\n\n"
+                        f"Your Obsidian roadmap has been updated with Unit 1 marked green (Mastered). "
+                        f"Would you like to wrap up today's session here, or take a look at **{next_title}**?"
+                    )
+                    print_tutor_message(mastery_reply)
+                    history.append({"role": "user", "content": user_msg})
+                    history.append({"role": "assistant", "content": mastery_reply})
+                    db.append_chat_message(self.subject, "user", user_msg)
+                    db.append_chat_message(self.subject, "assistant", mastery_reply)
+                    planner.boundary_level = new_level
+                    active_idx = max(0, min(len(planner.modules) - 1, int(new_level) - 1))
+                    curr_unit = planner.modules[active_idx][0]
+                    continue
+                else:
+                    print_meta_learning_card(meta_check)
 
             db.append_chat_message(self.subject, "user", user_msg)
             try:
